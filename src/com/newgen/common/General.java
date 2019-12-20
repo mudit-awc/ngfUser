@@ -84,9 +84,7 @@ public class General implements Serializable {
             DateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
             DateFormat formatter1 = new SimpleDateFormat("yyyy-MM-dd");
             Date sDate_temp = formatter.parse(sDate);
-            System.out.println("Date parse : " + sDate_temp);
             formatDate = formatter1.format(sDate_temp);
-            System.out.println("Date format : " + formatDate);
             return formatDate;
         } catch (ParseException ex) {
             System.out.println("Error while convertin date: " + ex);
