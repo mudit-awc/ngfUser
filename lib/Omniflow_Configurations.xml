@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ===================================================================== -->
+<!--  OmniFlow Server Configuration                                        -->
+<!-- ===================================================================== -->
+<PathInfo>
+	<Location>
+		<Name>Omniflow_Config_Location</Name>
+		<Path></Path>
+	</Location>
+	<Location>
+		<Name>Omniflow_Logs_Config_Location</Name>
+		<Path></Path>
+	</Location>
+    <Location>
+		<Name>Omniflow_Axis2_Services_Location</Name>
+		<Path>E:\Newgen\Server\Deployments\ngfUser</Path>
+	</Location>
+	<Location>
+		<Name>BPEL_WSDL_Location</Name>
+		<Path></Path>
+	</Location>	
+</PathInfo>
