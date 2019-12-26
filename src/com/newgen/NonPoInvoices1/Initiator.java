@@ -153,32 +153,32 @@ public class Initiator implements FormListener {
                         formObject.setNGValue("Text34", serialno1);
                         
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails_1");
-                        switch(formObject.getNGValue("proctype"))
-                           formObject.ExecuteExternalCommand();
-					{
-					case "Handling/Unloadin":
-					case "BP Commissions & Third Party Commissions":
-					case "Demurrage and Wharfage (Logistics)":
-					case "Secondary Freight (Road)":
-					case "Rent Godown and Rent Office":
-					case "Technical Services: Service & Technical Activity":
-					case "Services: Miscellaneous Charges":
-					case "Government Bills":
-					case "Travelling":
-					case "Bonus/Exgratia":
-					case "Donations":
-					case "Freight":
-					case "Repair and Supply: Minor Supply Items  - Part1":
-                                        case "Demurrage and Wharfage (Plant/GU) (Road)":
-					case "Other Logistic Expenses (Road)":
-					case "Primary Freight and Freight on clinker Sale (Road)":
-                                        Query="select sachsn from cmplx_linedetails_1 where pinstanceid ='"+processInstanceId+"'";                                            System.out.println("Query for sachsn"+Query);
-                                        result=formObject.getDataFromDataSource(Query);
-                                            System.out.println("result is"+result);
-                                            for (int j = 0; j < result.size(); j++) {
-                                            formObject.addComboItem("Combo4", result.get(j).get(0), result.get(j).get(0));
-                                            }
-                        }
+//                        switch (formObject.getNGValue("proctype"))
+//                           formObject.ExecuteExternalCommand();
+//					{
+//					case "Handling/Unloadin":
+//					case "BP Commissions & Third Party Commissions":
+//					case "Demurrage and Wharfage (Logistics)":
+//					case "Secondary Freight (Road)":
+//					case "Rent Godown and Rent Office":
+//					case "Technical Services: Service & Technical Activity":
+//					case "Services: Miscellaneous Charges":
+//					case "Government Bills":
+//					case "Travelling":
+//					case "Bonus/Exgratia":
+//					case "Donations":
+//					case "Freight":
+//					case "Repair and Supply: Minor Supply Items  - Part1":
+//                                        case "Demurrage and Wharfage (Plant/GU) (Road)":
+//					case "Other Logistic Expenses (Road)":
+//					case "Primary Freight and Freight on clinker Sale (Road)":
+//                                        Query="select sachsn from cmplx_linedetails_1 where pinstanceid ='"+processInstanceId+"'";                                            System.out.println("Query for sachsn"+Query);
+//                                        result=formObject.getDataFromDataSource(Query);
+//                                            System.out.println("result is"+result);
+//                                            for (int j = 0; j < result.size(); j++) {
+//                                            formObject.addComboItem("Combo4", result.get(j).get(0), result.get(j).get(0));
+//                                            }
+                        //}
                         break;
                     case "Btn_Add_linedetails_2":
                         int serialno2;
