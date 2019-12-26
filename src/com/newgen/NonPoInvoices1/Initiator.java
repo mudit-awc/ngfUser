@@ -87,16 +87,19 @@ public class Initiator implements FormListener {
                         }
 //                         
                         break;
-//                    
+                    case "proctype":
+                    formObject.clear("Combo4");
+                    break;
                 }
                 break;
             case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
+                    
                     case "Btn_Add_linedetails_1":
                         //System.out.println("");
                         int serialno1;
                         String hsnsac1 = formObject.getNGValue("Text35");
-                        formObject.clear("Combo4");
+                        //formObject.clear("Combo4");
                         //get row count of list view
                         ListView ListViewq_linedetails_1 = (ListView) formObject.getComponent("q_linedetails_1");
                         int RowCount_q_linedetails_1 = ListViewq_linedetails_1.getRowCount();
@@ -157,7 +160,7 @@ public class Initiator implements FormListener {
                         int serialno3;
                         //get row count of list view
                          String hsnsac3 = formObject.getNGValue("Text59");
-                         formObject.clear("Combo4");
+                         //formObject.clear("Combo4");
                         ListView ListViewq_linedetails_3 = (ListView) formObject.getComponent("q_linedetails_3");
                         int RowCount_q_linedetails_3 = ListViewq_linedetails_3.getRowCount();
                         System.out.println("RowCount_q_linedetails_3 " + RowCount_q_linedetails_3);
