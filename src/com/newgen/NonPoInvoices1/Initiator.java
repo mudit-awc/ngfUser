@@ -96,6 +96,7 @@ public class Initiator implements FormListener {
                         //System.out.println("");
                         int serialno1;
                         String hsnsac1 = formObject.getNGValue("Text35");
+                        formObject.clear("Combo4");
                         //get row count of list view
                         ListView ListViewq_linedetails_1 = (ListView) formObject.getComponent("q_linedetails_1");
                         int RowCount_q_linedetails_1 = ListViewq_linedetails_1.getRowCount();
@@ -107,7 +108,7 @@ public class Initiator implements FormListener {
                         formObject.setNGValue("Text34", serialno1);
 
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails_1");
-
+                           
                         //ADD COMBO ITEM
                         formObject.addComboItem("Combo4", hsnsac1, hsnsac1);
 
@@ -156,6 +157,7 @@ public class Initiator implements FormListener {
                         int serialno3;
                         //get row count of list view
                          String hsnsac3 = formObject.getNGValue("Text59");
+                         formObject.clear("Combo4");
                         ListView ListViewq_linedetails_3 = (ListView) formObject.getComponent("q_linedetails_3");
                         int RowCount_q_linedetails_3 = ListViewq_linedetails_3.getRowCount();
                         System.out.println("RowCount_q_linedetails_3 " + RowCount_q_linedetails_3);
