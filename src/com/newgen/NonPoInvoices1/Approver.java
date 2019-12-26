@@ -40,11 +40,12 @@ public class Approver implements FormListener {
     String userName = null;
     String processDefId = null;
     String Query = null;
+    String Query1 = null;
     List<List<String>> result;
     PickList objPicklist;
     General objGeneral = null;
      List<List<String>> result1;
-      String Query1 = null;
+     
 
     @Override
     public void continueExecution(String arg0, HashMap<String, String> arg1) {
@@ -269,6 +270,8 @@ public class Approver implements FormListener {
             System.out.println("levelflag : " + levelflag);
             //Query = "select UserName from ApproverMaster where Head='" + proctype + "' "
                     //+ "and Level='" + levelflag + "' limit 1";
+            String filestatus=formObject.getNGValue("filestatus");
+           if(filestatus.equalsIgnoreCase("Approved")){
              Query="select TOP 1 ApproverName from ApproverMaster where Head ='" + proctype + "'and ApproverLevel='" + levelflag + "'";
                     //+"and State ='" + state + "'";
             if(!proctype.equalsIgnoreCase("Demurrage and Wharfage (Plant/GU) (Rail)")||!proctype.equalsIgnoreCase("Primary Freight and Freight on clinker Sale (Rail)")||!proctype.equalsIgnoreCase("Other Logistic Expenses (Rail)")||!proctype.equalsIgnoreCase("Travel Allowance Bills (TA Bills) (Train)")){
@@ -280,7 +283,8 @@ public class Approver implements FormListener {
             
             System.out.println("Query:" + Query);
             result = formObject.getDataFromDataSource(Query);
-          
+           
+               System.out.println("inside approver ");
             System.out.println("result" + result);
             if (result.size() > 0) {
                 System.out.println("assignto" + result.get(0).get(0));
@@ -289,7 +293,20 @@ public class Approver implements FormListener {
             } else {
                 formObject.setNGValue("assignto", "NA");
             }
-            }
+           }
+           
+           else{
+                processInstanceId = formConfig.getConfigElement("ProcessInstanceId");
+               //Query1 = "select CreatedByName from WFINSTRUMENTTABLE where ProcessInstanceID = '"+processInstanceId+'";
+
+                Query= "select CreatedByName from WFINSTRUMENTTABLE where ProcessInstanceID = '"+processInstanceId+"'";
+                System.out.println("Query Raised");
+                result=formObject.getDataFromDataSource(Query);
+                System.out.println("result"+result);
+                formObject.setNGValue("assignto", result.get(0).get(0));
+           }
+            
+        }
         catch (Exception e) {
             e.printStackTrace();
         }

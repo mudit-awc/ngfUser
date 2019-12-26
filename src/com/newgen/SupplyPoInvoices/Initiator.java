@@ -68,9 +68,6 @@ public class Initiator implements FormListener {
         objGetSetPurchaseOrderData = new GetSetPurchaseOrderData();
         objGetSetGateEntryData = new GetSetGateEntryData();
         objReadProperty = new ReadProperty();
-        IRepeater RepeaterControlFrame5 = formObject.getRepeaterControl("Frame5");
-        String GateEntryLineLV = "q_gateentrylines";
-        String PoLineLV = "q_polines";
         switch (pEvent.getType().name()) {
 
             case "VALUE_CHANGED":

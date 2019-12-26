@@ -22,10 +22,10 @@ import com.newgen.omniforms.context.FormContext;
 import com.newgen.omniforms.event.ComponentEvent;
 import com.newgen.omniforms.event.FormEvent;
 import com.newgen.omniforms.listener.FormListener;
-import static javafx.beans.binding.Bindings.and;
-import static javafx.beans.binding.Bindings.select;
-import java.util.*;
-import java.lang.*;
+//import static javafx.beans.binding.Bindings.and;
+//import static javafx.beans.binding.Bindings.select;
+//import java.util.*;
+//import java.lang.*;
 import javax.faces.application.FacesMessage;
 
 public class QualityUser implements FormListener {

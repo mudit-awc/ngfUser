@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.faces.application.FacesMessage;
 import javax.faces.validator.ValidatorException;
 
 /**
@@ -63,10 +64,77 @@ public class Initiator implements FormListener {
         //objGeneral = new General();
         switch (pEvent.getType().name()) {
             case "VALUE_CHANGED":
+              
                 switch (pEvent.getSource().getName()) {
-                    case "":
-
+                    case "Text67":
+                        String taxableamt=formObject.getNGValue("totaltaxableamt");
+                        String per=formObject.getNGValue("Text67");
+                        double ttamt=Double.parseDouble(formObject.getNGValue("totaltaxableamt"));
+                        double perc=Double.parseDouble(formObject.getNGValue("Text67"));
+                        if(per!=null){
+                        System.out.println("inside totaltaxableamt"); 
+                        //double perc=Double.parseDouble(formObject.getNGValue("Text67"));
+                        System.out.println(perc);
+                        //double ttamt=Double.parseDouble(formObject.getNGValue("totaltaxableamt"));
+                        double amt=((perc/100)*ttamt);
+                         System.out.println(amt);
+                        String amount=String.valueOf(amt);
+                        formObject.setNGValue("Text69",amount);
+                        }
+                       else{
+                            System.out.println("inside else");
+                            formObject.setNGValue("Text69", "");
+                            throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
+                        }
+//                         //formObject.setNGValue("Text69", "");
+//                         //formObject.setNGValue("Text69",);
+//                        }
                         break;
+//                    case "proctype":
+//                        		switch(formObject.getNGValue("proctype"))
+//					{
+//					case "Handling/Unloadin":
+//					case "BP Commissions & Third Party Commissions":
+//					case "Demurrage and Wharfage (Logistics)":
+//					case "Secondary Freight (Road)":
+//					case "Rent Godown and Rent Office":
+//					case "Technical Services: Service & Technical Activity":
+//					case "Services: Miscellaneous Charges":
+//					case "Government Bills":
+//					case "Travelling":
+//					case "Bonus/Exgratia":
+//					case "Donations":
+//					case "Freight":
+//					case "Repair and Supply: Minor Supply Items  - Part1":
+//                                        case "Demurrage and Wharfage (Plant/GU) (Road)":
+//					case "Other Logistic Expenses (Road)":
+//					case "Primary Freight and Freight on clinker Sale (Road)":
+//                                        Query="select sachsn from cmplx_linedetails_1 where pinstanceid ='"+processInstanceId+"'";                                            System.out.println("Query for sachsn"+Query);
+//                                        result=formObject.getDataFromDataSource(Query);
+//                                            System.out.println("result is"+result);
+//                                            for (int j = 0; j < result.size(); j++) {
+//                                            formObject.addComboItem("Combo4", result.get(j).get(0), result.get(j).get(0));
+//                                            }
+//                                        break;
+//                                       	case "Travel Allowance Bills (TA Bills) (Hotel)": 
+//                                        Query="select sachsn from cmplx_linedetails_3 where pinstanceid ='"+processInstanceId+"'";   
+//                                        result=formObject.getDataFromDataSource(Query);
+//                                           for (int j = 0; j < result.size(); j++) {
+//                                            formObject.addComboItem("Combo4", result.get(j).get(0), result.get(j).get(0));
+//                                            } 
+//                                        break;
+//                                        case "Travel Allowance Bills (TA Bills) (Train)":
+//                                         Query="select sachsn from cmplx_linedetails_2 where pinstanceid ='"+processInstanceId+"'";
+//                                           result=formObject.getDataFromDataSource(Query);
+//                                           for (int j = 0; j < result.size(); j++) {
+//                                            formObject.addComboItem("Combo4", result.get(j).get(0), result.get(j).get(0));
+//                                            } 
+//                                        break;
+//                                        case "Travel Desk and Company Expenses Reimbursement":
+//                                         Query="select sachsn from cmplx_linedetails_4 where pinstanceid ='"+processInstanceId+"'";
+//                                            
+//                                        }
+//                    break;
                 }
                 break;
             case "MOUSE_CLICKED":
@@ -83,7 +151,34 @@ public class Initiator implements FormListener {
                         System.out.println("serialno1 " + serialno1);
                         //set value in serial no text field
                         formObject.setNGValue("Text34", serialno1);
+                        
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails_1");
+                        switch(formObject.getNGValue("proctype"))
+                           formObject.ExecuteExternalCommand();
+					{
+					case "Handling/Unloadin":
+					case "BP Commissions & Third Party Commissions":
+					case "Demurrage and Wharfage (Logistics)":
+					case "Secondary Freight (Road)":
+					case "Rent Godown and Rent Office":
+					case "Technical Services: Service & Technical Activity":
+					case "Services: Miscellaneous Charges":
+					case "Government Bills":
+					case "Travelling":
+					case "Bonus/Exgratia":
+					case "Donations":
+					case "Freight":
+					case "Repair and Supply: Minor Supply Items  - Part1":
+                                        case "Demurrage and Wharfage (Plant/GU) (Road)":
+					case "Other Logistic Expenses (Road)":
+					case "Primary Freight and Freight on clinker Sale (Road)":
+                                        Query="select sachsn from cmplx_linedetails_1 where pinstanceid ='"+processInstanceId+"'";                                            System.out.println("Query for sachsn"+Query);
+                                        result=formObject.getDataFromDataSource(Query);
+                                            System.out.println("result is"+result);
+                                            for (int j = 0; j < result.size(); j++) {
+                                            formObject.addComboItem("Combo4", result.get(j).get(0), result.get(j).get(0));
+                                            }
+                        }
                         break;
                     case "Btn_Add_linedetails_2":
                         int serialno2;
@@ -198,10 +293,10 @@ public class Initiator implements FormListener {
             System.out.println("workItemId====" + workItemId);
 
 //  ************************************************************************************
-            if (activityName.equalsIgnoreCase("Introduction") || activityName.equalsIgnoreCase("Initiator")) {
-                formObject.setVisible("filestatus", false);
-                formObject.setVisible("Label23", false);
-            }
+//            if (activityName.equalsIgnoreCase("Introduction") || activityName.equalsIgnoreCase("Initiator")) {
+//                formObject.setVisible("filestatus", false);
+//                formObject.setVisible("Label23", false);
+//            }
         } catch (Exception e) {
             System.out.println("Exception in FieldValueBagSet::::" + e.getMessage());
         }
