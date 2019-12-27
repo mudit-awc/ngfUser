@@ -27,7 +27,7 @@ import javax.faces.validator.ValidatorException;
  *
  * @author Richa Maheshwari
  */
-public class Head implements FormListener {
+public class Initiator implements FormListener {
 
     FormReference formObject = null;
     FormConfig formConfig = null;
@@ -64,7 +64,25 @@ public class Head implements FormListener {
         switch (pEvent.getType().name()) {
             case "VALUE_CHANGED":
                 switch (pEvent.getSource().getName()) {
-                    case "":
+                    case "Text26":
+                         //String taxableamt = formObject.getNGValue("totaltaxableamount");
+                        String per = formObject.getNGValue("Text26");
+                        double ttamt = Double.parseDouble(formObject.getNGValue("totaltaxableamount"));
+                        double perc = Double.parseDouble(formObject.getNGValue("Text67"));
+                        if (per != null) {
+                            System.out.println("inside totaltaxableamount");
+                            //double perc=Double.parseDouble(formObject.getNGValue("Text67"));
+                            System.out.println(perc);
+                            //double ttamt=Double.parseDouble(formObject.getNGValue("totaltaxableamt"));
+                            double amt = ((perc / 100) * ttamt);
+                            System.out.println(amt);
+                            String amount = String.valueOf(amt);
+                            formObject.setNGValue("Text28", amount);
+                        } else {
+                            System.out.println("inside else");
+                            formObject.setNGValue("Text28", "");
+                            //throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
+                        }
                         break;
                 }
                 break;
@@ -73,6 +91,7 @@ public class Head implements FormListener {
                 switch (pEvent.getSource().getName()) {
                     case "Btn_Add_linedetails1":
                         int serialno;
+                       String hsnsac=formObject.getNGValue("Text14");
                         //get row count of list view
                         ListView ListViewq_linedetails1 = (ListView) formObject.getComponent("q_linedetails1");
                         int RowCount_q_linedetails1 = ListViewq_linedetails1.getRowCount();
@@ -83,6 +102,7 @@ public class Head implements FormListener {
                         //set value in serial no text field
                         formObject.setNGValue("Text12", serialno);
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails1");
+                        formObject.addComboItem("Combo4", hsnsac, hsnsac);
                         break;
                     case "Btn_Modify_linedetails1":
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_linedetails1");
@@ -221,7 +241,7 @@ public class Head implements FormListener {
                    // + "order by ApproverLevel desc limit 1
             try {
                 String state=formObject.getNGValue("servicegiveninstate");
-              if(!activityName.equalsIgnoreCase("Accounts")){
+              //if(!activityName.equalsIgnoreCase("Accounts")){
                   System.out.println("inside initiator and Approver activity");
             Query = "select TOP 1 ApproverName from ApproverMaster where Head='" + proctype + "' "
                     + "and ApproverLevel='" + levelflag + "'and State ='" + state + "'";
@@ -235,26 +255,11 @@ public class Head implements FormListener {
             } else {
                 formObject.setNGValue("assignto", "NA");
             }
-              }
+              //}
         } catch (Exception e) {
             e.printStackTrace();
         }
-            try{
-                String state=formObject.getNGValue("servicegiveninstate");
-        if(activityName.equalsIgnoreCase("Accounts")){
-            System.out.println("inside activity accounts");
-            Query = "select TOP 1 ApproverName from ApproverMaster where Head='" + proctype + " 'and State = '"+ state +"'"
-                    + " order by ApproverLevel DESC";
-            System.out.println("Query1:" + Query);
-            result = formObject.getDataFromDataSource(Query);
-                System.out.println("result is"+result);
-            formObject.setNGValue("assignto", result.get(0).get(0));
-                System.out.println("value in assign to"+formObject.getNGValue("assignto"));
-        } 
-    }
-            catch (Exception e) {
-            e.printStackTrace();
-        }
+          
     }
     
     @Override

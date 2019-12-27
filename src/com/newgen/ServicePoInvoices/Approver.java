@@ -27,7 +27,7 @@ import javax.faces.validator.ValidatorException;
  *
  * @author Richa Maheshwari
  */
-public class Head implements FormListener {
+public class Approver implements FormListener {
 
     FormReference formObject = null;
     FormConfig formConfig = null;
@@ -221,7 +221,7 @@ public class Head implements FormListener {
                    // + "order by ApproverLevel desc limit 1
             try {
                 String state=formObject.getNGValue("servicegiveninstate");
-              if(!activityName.equalsIgnoreCase("Accounts")){
+             // if(!activityName.equalsIgnoreCase("Accounts")){
                   System.out.println("inside initiator and Approver activity");
             Query = "select TOP 1 ApproverName from ApproverMaster where Head='" + proctype + "' "
                     + "and ApproverLevel='" + levelflag + "'and State ='" + state + "'";
@@ -235,26 +235,11 @@ public class Head implements FormListener {
             } else {
                 formObject.setNGValue("assignto", "NA");
             }
-              }
+              //}
         } catch (Exception e) {
             e.printStackTrace();
         }
-            try{
-                String state=formObject.getNGValue("servicegiveninstate");
-        if(activityName.equalsIgnoreCase("Accounts")){
-            System.out.println("inside activity accounts");
-            Query = "select TOP 1 ApproverName from ApproverMaster where Head='" + proctype + " 'and State = '"+ state +"'"
-                    + " order by ApproverLevel DESC";
-            System.out.println("Query1:" + Query);
-            result = formObject.getDataFromDataSource(Query);
-                System.out.println("result is"+result);
-            formObject.setNGValue("assignto", result.get(0).get(0));
-                System.out.println("value in assign to"+formObject.getNGValue("assignto"));
-        } 
-    }
-            catch (Exception e) {
-            e.printStackTrace();
-        }
+           
     }
     
     @Override

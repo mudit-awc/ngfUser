@@ -83,7 +83,7 @@ public class Initiator implements FormListener {
                         } else {
                             System.out.println("inside else");
                             formObject.setNGValue("Text69", "");
-                            throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
+                            //throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
                         }
 //                         
                         break;
