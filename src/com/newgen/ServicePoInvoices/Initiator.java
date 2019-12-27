@@ -63,17 +63,16 @@ public class Initiator implements FormListener {
         //objGeneral = new General();
         switch (pEvent.getType().name()) {
             case "VALUE_CHANGED":
+                System.out.println("inside vALUE CHANGED");
                 switch (pEvent.getSource().getName()) {
                     case "Text26":
-                         //String taxableamt = formObject.getNGValue("totaltaxableamount");
+                        System.out.println("inside Text26");
                         String per = formObject.getNGValue("Text26");
                         double ttamt = Double.parseDouble(formObject.getNGValue("totaltaxableamount"));
-                        double perc = Double.parseDouble(formObject.getNGValue("Text67"));
+                        double perc = Double.parseDouble(formObject.getNGValue("Text26"));
                         if (per != null) {
                             System.out.println("inside totaltaxableamount");
-                            //double perc=Double.parseDouble(formObject.getNGValue("Text67"));
                             System.out.println(perc);
-                            //double ttamt=Double.parseDouble(formObject.getNGValue("totaltaxableamt"));
                             double amt = ((perc / 100) * ttamt);
                             System.out.println(amt);
                             String amount = String.valueOf(amt);
@@ -83,6 +82,9 @@ public class Initiator implements FormListener {
                             formObject.setNGValue("Text28", "");
                             //throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
                         }
+                        break;
+                    case "proctype":  
+                     formObject.clear("Combo4");
                         break;
                 }
                 break;
