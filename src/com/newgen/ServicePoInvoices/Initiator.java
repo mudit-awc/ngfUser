@@ -104,7 +104,9 @@ public class Initiator implements FormListener {
                         //set value in serial no text field
                         formObject.setNGValue("Text12", serialno);
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails1");
+                        
                         formObject.addComboItem("Combo4", hsnsac, hsnsac);
+                        System.out.println("combo4");
                         break;
                     case "Btn_Modify_linedetails1":
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_linedetails1");
