@@ -68,6 +68,7 @@ public class Initiator implements FormListener {
                     case "Text26":
                         System.out.println("inside Text26");
                         String per = formObject.getNGValue("Text26");
+                        System.out.println("percentage entered is  "+per);
                         double ttamt = Double.parseDouble(formObject.getNGValue("totaltaxableamount"));
                         double perc = Double.parseDouble(formObject.getNGValue("Text26"));
                         if (per != null) {
