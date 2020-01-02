@@ -237,6 +237,8 @@ public class Initiator implements FormListener {
         if (RowCount_gateentrylines == 0) {
             throw new ValidatorException(new FacesMessage("Kindly fetch the gate entry details", ""));
         }
+        String puflag="fromini";
+        formObject.setNGValue("Text20", puflag);
     }
 
     @Override

@@ -66,35 +66,36 @@ public class Initiator implements FormListener {
             case "VALUE_CHANGED":
 
                 switch (pEvent.getSource().getName()) {
+                    case "proctype":
+                        formObject.clear("Combo4");
+                        break;
                     case "Text67":
                         String taxableamt = formObject.getNGValue("totaltaxableamt");
                         String per = formObject.getNGValue("Text67");
                         double ttamt = Double.parseDouble(formObject.getNGValue("totaltaxableamt"));
                         double perc = Double.parseDouble(formObject.getNGValue("Text67"));
-                        if (per != null) {
-                            System.out.println("inside totaltaxableamt");
-                            //double perc=Double.parseDouble(formObject.getNGValue("Text67"));
-                            System.out.println(perc);
-                            //double ttamt=Double.parseDouble(formObject.getNGValue("totaltaxableamt"));
-                            double amt = ((perc / 100) * ttamt);
-                            System.out.println(amt);
-                            String amount = String.valueOf(amt);
-                            formObject.setNGValue("Text69", amount);
-                        } else {
-                            System.out.println("inside else");
-                            formObject.setNGValue("Text69", "");
-                            //throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
-                        }
+
+                        //System.out.println("inside totaltaxableamt");
+                        //double perc=Double.parseDouble(formObject.getNGValue("Text67"));
+                        // System.out.println(perc);
+                        //double ttamt=Double.parseDouble(formObject.getNGValue("totaltaxableamt"));
+                        double amt = ((perc / 100) * ttamt);
+                        //System.out.println(amt);
+                        String amount = String.valueOf(amt);
+                        formObject.setNGValue("Text69", amount);
+//                        else {
+//                            System.out.println("inside else");
+//                            formObject.setNGValue("Text69", "");
+//                            //throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
+//                        }
 //                         
                         break;
-                    case "proctype":
-                    formObject.clear("Combo4");
-                    break;
+
                 }
                 break;
             case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
-                    
+
                     case "Btn_Add_linedetails_1":
                         //System.out.println("");
                         int serialno1;
@@ -103,48 +104,23 @@ public class Initiator implements FormListener {
                         //get row count of list view
                         ListView ListViewq_linedetails_1 = (ListView) formObject.getComponent("q_linedetails_1");
                         int RowCount_q_linedetails_1 = ListViewq_linedetails_1.getRowCount();
-                        System.out.println("RowCount_q_linedetails_1 " + RowCount_q_linedetails_1);
+
                         //genrate the serial no
                         serialno1 = RowCount_q_linedetails_1 + 1;
-                        System.out.println("serialno1 " + serialno1);
+                        //System.out.println("serialno1 " + serialno1);
                         //set value in serial no text field
                         formObject.setNGValue("Text34", serialno1);
 
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails_1");
-                           
+
                         //ADD COMBO ITEM
                         formObject.addComboItem("Combo4", hsnsac1, hsnsac1);
 
-//                        switch (formObject.getNGValue("proctype")) {
-//                            case "Handling/Unloadin":
-//                            case "BP Commissions & Third Party Commissions":
-//                            case "Demurrage and Wharfage (Logistics)":
-//                            case "Secondary Freight (Road)":
-//                            case "Rent Godown and Rent Office":
-//                            case "Technical Services: Service & Technical Activity":
-//                            case "Services: Miscellaneous Charges":
-//                            case "Government Bills":
-//                            case "Travelling":
-//                            case "Bonus/Exgratia":
-//                            case "Donations":
-//                            case "Freight":
-//                            case "Repair and Supply: Minor Supply Items  - Part1":
-//                            case "Demurrage and Wharfage (Plant/GU) (Road)":
-//                            case "Other Logistic Expenses (Road)":
-//                            case "Primary Freight and Freight on clinker Sale (Road)":
-//                                Query = "select sachsn from cmplx_linedetails_1 where pinstanceid ='" + processInstanceId + "'";
-//                                System.out.println("Query for sachsn" + Query);
-//                                result = formObject.getDataFromDataSource(Query);
-//                                System.out.println("result is" + result);
-//                                for (int j = 0; j < result.size(); j++) {
-//                                    formObject.addComboItem("Combo4", result.get(j).get(0), result.get(j).get(0));
-//                                }
-//                        }
                         break;
                     case "Btn_Add_linedetails_2":
                         int serialno2;
                         //get row count of list view
-                        //String hsnsac2 = formObject.getNGValue("");
+                      
                         ListView ListViewq_linedetails_2 = (ListView) formObject.getComponent("q_linedetails_2");
                         int RowCount_q_linedetails_2 = ListViewq_linedetails_2.getRowCount();
                         System.out.println("RowCount_q_linedetails_2 " + RowCount_q_linedetails_2);
@@ -154,13 +130,13 @@ public class Initiator implements FormListener {
                         //set value in serial no text field
                         formObject.setNGValue("Text52", serialno2);
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails_2");
-                        //formObject.addComboItem("Combo4", hsnsac2, hsnsac2);
                         break;
+                        
                     case "Btn_Add_linedetails_3":
                         int serialno3;
                         //get row count of list view
-                         String hsnsac3 = formObject.getNGValue("Text59");
-                         //formObject.clear("Combo4");
+                        String hsnsac3 = formObject.getNGValue("Text59");
+                        //formObject.clear("Combo4");
                         ListView ListViewq_linedetails_3 = (ListView) formObject.getComponent("q_linedetails_3");
                         int RowCount_q_linedetails_3 = ListViewq_linedetails_3.getRowCount();
                         System.out.println("RowCount_q_linedetails_3 " + RowCount_q_linedetails_3);
@@ -175,8 +151,9 @@ public class Initiator implements FormListener {
                     case "Btn_Add_linedetails_4":
                         int serialno4;
                         //get row count of list view
-                        String hsnsac4 = formObject.getNGValue("");
+                        
                         ListView ListViewq_linedetails_4 = (ListView) formObject.getComponent("q_linedetails_4");
+                        int index = ListViewq_linedetails_4.getSelectedRowIndex();
                         int RowCount_q_linedetails_4 = ListViewq_linedetails_4.getRowCount();
                         System.out.println("RowCount_q_linedetails_4 " + RowCount_q_linedetails_4);
                         //genrate the serial no
@@ -185,7 +162,7 @@ public class Initiator implements FormListener {
                         //set value in serial no text field
                         formObject.setNGValue("Text64", serialno4);
                         formObject.ExecuteExternalCommand("NGAddRow", "q_linedetails_4");
-                         formObject.addComboItem("Combo4", hsnsac4, hsnsac4);
+                        
                         break;
                     case "Btn_Add_otherdetails_npo":
                         formObject.ExecuteExternalCommand("NGAddRow", "q_otherdetails_npo");
@@ -207,13 +184,36 @@ public class Initiator implements FormListener {
                         formObject.ExecuteExternalCommand("NGDeleteRow", "q_otherdetails_npo");
                         break;
                     case "Btn_Modify_linedetails_1":
+                        //System.out.println("inside button linedetails_1");
+
+                        ListView ListViewq_linedetails_1M = (ListView) formObject.getComponent("q_linedetails_1");
+                        int RowCount_q_linedetails_1M = ListViewq_linedetails_1M.getRowCount();
+
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_linedetails_1");
+                        formObject.clear("Combo4");
+                        for (int i = 0; i < RowCount_q_linedetails_1M; i++) {
+                            String listviewvalue = formObject.getNGValue("q_linedetails_1", i, 2);
+                            //System.out.println(formObject.getNGValue("q_linedetails_1", i, 2));
+                            formObject.addComboItem("Combo4", listviewvalue, listviewvalue);
+                        }
+
                         break;
                     case "Btn_Modify_linedetails_2":
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_linedetails_2");
                         break;
                     case "Btn_Modify_linedetails_3":
+                       
+                         ListView ListViewq_linedetails_3M = (ListView) formObject.getComponent("q_linedetails_3");
+                        int RowCount_q_linedetails_3M = ListViewq_linedetails_3M.getRowCount();
+
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_linedetails_3");
+                        formObject.clear("Combo4");
+                        for (int i = 0; i < RowCount_q_linedetails_3M; i++) {
+                            String listviewvalue2 = formObject.getNGValue("q_linedetails_3", i, 2);
+                            //System.out.println(formObject.getNGValue("q_linedetails_1", i, 2));
+                            formObject.addComboItem("Combo4", listviewvalue2, listviewvalue2);
+                        }
+                        
                         break;
                     case "Btn_Modify_linedetails_4":
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_linedetails_4");
