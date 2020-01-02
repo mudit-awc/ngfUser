@@ -59,18 +59,27 @@ public class Initiator implements FormListener {
 //        System.out.println("pEvent.getType().name() :" + pEvent.getType().name());
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
-
+        System.out.println("inside event dispatch richa");
         //objGeneral = new General();
-        switch (pEvent.getType().name()) {
+        switch (pEvent.getType().name()){
             case "VALUE_CHANGED":
                 System.out.println("inside vALUE CHANGED");
+                 System.out.println("richa : "+pEvent.getSource().getName());
                 switch (pEvent.getSource().getName()) {
-                    case "Text26":
+                    case "proctype":  
+                        System.out.println("inside proctype richa");
+                     formObject.clear("Combo4");
+                        break;
+                    case "Text7":
+                         System.out.println("inside Text26 richa");
                         System.out.println("inside Text26");
-                        String per = formObject.getNGValue("Text26");
+                        String per = formObject.getNGValue("Text7");
+                        System.out.println("percentage entered is  "+per);
                         double ttamt = Double.parseDouble(formObject.getNGValue("totaltaxableamount"));
-                        double perc = Double.parseDouble(formObject.getNGValue("Text26"));
+                        double perc = Double.parseDouble(formObject.getNGValue("Text7"));
                         if (per != null) {
+                            System.out.println("inside 1st if richa");
+                            
                             System.out.println("inside totaltaxableamount");
                             System.out.println(perc);
                             double amt = ((perc / 100) * ttamt);
@@ -78,15 +87,15 @@ public class Initiator implements FormListener {
                             String amount = String.valueOf(amt);
                             formObject.setNGValue("Text28", amount);
                         } else {
+                            System.out.println("inside else if richa");
                             System.out.println("inside else");
                             formObject.setNGValue("Text28", "");
                             //throw new ValidatorException(new FacesMessage("Please Enter Percentage"));
                         }
                         break;
-                    case "proctype":  
-                     formObject.clear("Combo4");
-                        break;
+                    
                 }
+                
                 break;
 
             case "MOUSE_CLICKED":

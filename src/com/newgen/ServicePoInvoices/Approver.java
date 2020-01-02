@@ -223,6 +223,8 @@ public class Approver implements FormListener {
                 String state=formObject.getNGValue("servicegiveninstate");
              // if(!activityName.equalsIgnoreCase("Accounts")){
                   System.out.println("inside initiator and Approver activity");
+                  String filestatus=formObject.getNGValue("filestatus");
+          if(filestatus.equalsIgnoreCase("Approved")){
             Query = "select TOP 1 ApproverName from ApproverMaster where Head='" + proctype + "' "
                     + "and ApproverLevel='" + levelflag + "'and State ='" + state + "'";
             System.out.println("Query:" + Query);
@@ -235,6 +237,17 @@ public class Approver implements FormListener {
             } else {
                 formObject.setNGValue("assignto", "NA");
             }
+          }
+          else{
+          processInstanceId = formConfig.getConfigElement("ProcessInstanceId");
+               //Query1 = "select CreatedByName from WFINSTRUMENTTABLE where ProcessInstanceID = '"+processInstanceId+'";
+
+                Query= "select CreatedByName from WFINSTRUMENTTABLE where ProcessInstanceID = '"+processInstanceId+"'";
+                System.out.println("Query Raised in service po");
+                result=formObject.getDataFromDataSource(Query);
+                System.out.println("result"+result);
+                formObject.setNGValue("assignto", result.get(0).get(0));
+          }
               //}
         } catch (Exception e) {
             e.printStackTrace();
