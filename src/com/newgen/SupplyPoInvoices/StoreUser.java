@@ -185,7 +185,7 @@ public class StoreUser implements FormListener {
                             System.out.println("valueatGRN : " + valueatGRN);
                             System.out.println("valueatitemid : " + valueatitemid);
 
-                            for (int a = 0; a < RowCountq_gateentrylines; a++) {
+                            for (int a = 0; a < RowCountq_polines; a++) {
                                 System.out.println("Doosra for loop");
                                 if (valueatitemid.equalsIgnoreCase(formObject.getNGValue("q_polines", a, 1))) {
                                     System.out.println("If ke ander");
@@ -199,68 +199,66 @@ public class StoreUser implements FormListener {
                         System.out.println("sumofUnitPrice :: " + sumofUnitPrice);
                         inviceAmount = Float.parseFloat(formObject.getNGValue("invoiceamount"));
                         System.out.println("invoiceamount :: " + inviceAmount);
-                        if(inviceAmount==sumofUnitPrice){
+                        if (inviceAmount == sumofUnitPrice) {
                             System.out.println("amount u");
-                             try {
-                            System.out.println("Inside button click Btn_GenerateGRN");
-                            JSONObject request_json = new JSONObject();
-                            JSONArray grnlinearray = new JSONArray();
-                            request_json.put("PONumber", formObject.getNGValue("purchaseorderno"));
-                            request_json.put("PackinSlipId", formObject.getNGValue("invoiceno"));
-                            request_json.put("PackingSlipDate", formObject.getNGValue("invoicedate"));
-                            request_json.put("EntryID", formObject.getNGValue("gateentryid"));
-                            request_json.put("Remark", formObject.getNGValue("storeremarks"));
+                            try {
+                                System.out.println("Inside button click Btn_GenerateGRN");
+                                JSONObject request_json = new JSONObject();
+                                JSONArray grnlinearray = new JSONArray();
+                                request_json.put("PONumber", formObject.getNGValue("purchaseorderno"));
+                                request_json.put("PackinSlipId", formObject.getNGValue("invoiceno"));
+                                request_json.put("PackingSlipDate", formObject.getNGValue("invoicedate"));
+                                request_json.put("EntryID", formObject.getNGValue("gateentryid"));
+                                request_json.put("Remark", formObject.getNGValue("storeremarks"));
 
-                            ListView ListViewq_poline = (ListView) formObject.getComponent(SerialBatchRegistrationLV);
-                            int rowcount_poline = ListViewq_poline.getRowCount();
-                            for (int i = 0; i < rowcount_poline; i++) {
-                                String registrationtype = formObject.getNGValue(SerialBatchRegistrationLV, i, 0);
-                                String item_id = formObject.getNGValue(SerialBatchRegistrationLV, i, 1);
-                                String serialno = "", batchno = "";
-                                System.out.println("registration type : " + registrationtype);
-                                JSONObject serialbatchregistration = new JSONObject();
-                                serialbatchregistration.put("ItemId", item_id);
-                                serialbatchregistration.put("Quantity", formObject.getNGValue(SerialBatchRegistrationLV, i, 2));
-                                serialbatchregistration.put("MfgDate", formObject.getNGValue(SerialBatchRegistrationLV, i, 4));
-                                serialbatchregistration.put("ExpDate", formObject.getNGValue(SerialBatchRegistrationLV, i, 5));
-                                if (registrationtype.equalsIgnoreCase("Serial No")) {
-                                    serialno = formObject.getNGValue(SerialBatchRegistrationLV, i, i);
-                                    batchno = "";
-                                } else if (registrationtype.equalsIgnoreCase("Batch No")) {
-                                    serialno = "";
-                                    batchno = formObject.getNGValue(SerialBatchRegistrationLV, i, i);
+                                ListView ListViewq_poline = (ListView) formObject.getComponent(SerialBatchRegistrationLV);
+                                int rowcount_poline = ListViewq_poline.getRowCount();
+                                for (int i = 0; i < rowcount_poline; i++) {
+                                    String registrationtype = formObject.getNGValue(SerialBatchRegistrationLV, i, 0);
+                                    String item_id = formObject.getNGValue(SerialBatchRegistrationLV, i, 1);
+                                    String serialno = "", batchno = "";
+                                    System.out.println("registration type : " + registrationtype);
+                                    JSONObject serialbatchregistration = new JSONObject();
+                                    serialbatchregistration.put("ItemId", item_id);
+                                    serialbatchregistration.put("Quantity", formObject.getNGValue(SerialBatchRegistrationLV, i, 2));
+                                    serialbatchregistration.put("MfgDate", formObject.getNGValue(SerialBatchRegistrationLV, i, 4));
+                                    serialbatchregistration.put("ExpDate", formObject.getNGValue(SerialBatchRegistrationLV, i, 5));
+                                    if (registrationtype.equalsIgnoreCase("Serial No")) {
+                                        serialno = formObject.getNGValue(SerialBatchRegistrationLV, i, i);
+                                        batchno = "";
+                                    } else if (registrationtype.equalsIgnoreCase("Batch No")) {
+                                        serialno = "";
+                                        batchno = formObject.getNGValue(SerialBatchRegistrationLV, i, i);
+                                    }
+                                    serialbatchregistration.put("BatchNumber", batchno);
+                                    serialbatchregistration.put("SerialNumber", serialno);
+
+                                    Query = "select linenumber from cmplx_poline where "
+                                            + "pinstanceid = '" + processInstanceId + "' "
+                                            + "and itemnumber = '" + item_id + "' ";
+                                    result = formObject.getDataFromDataSource(Query);
+                                    serialbatchregistration.put("LineNum", result.get(0).get(0));
+                                    grnlinearray.put(serialbatchregistration);
                                 }
-                                serialbatchregistration.put("BatchNumber", batchno);
-                                serialbatchregistration.put("SerialNumber", serialno);
-
-                                Query = "select linenumber from cmplx_poline where "
-                                        + "pinstanceid = '" + processInstanceId + "' "
-                                        + "and itemnumber = '" + item_id + "' ";
-                                result = formObject.getDataFromDataSource(Query);
-                                serialbatchregistration.put("LineNum", result.get(0).get(0));
-                                grnlinearray.put(serialbatchregistration);
+                                request_json.put("GRNLines", grnlinearray);
+                                System.out.println("Input Json : " + request_json.toString());
+                                String outputJSON = objGeneral.callWebService(
+                                        objReadProperty.getValue("postGRN"),
+                                        request_json.toString()
+                                );
+                                webserviceStatus = new PostGRN().parseGRNOutputJSON(outputJSON);
+                            } catch (JSONException ex) {
+                                Logger.getLogger(Initiator.class.getName()).log(Level.SEVERE, null, ex);
                             }
-                            request_json.put("GRNLines", grnlinearray);
-                            System.out.println("Input Json : " + request_json.toString());
-                            String outputJSON = objGeneral.callWebService(
-                                    objReadProperty.getValue("postGRN"),
-                                    request_json.toString()
-                            );
-                            webserviceStatus = new PostGRN().parseGRNOutputJSON(outputJSON);
-                        } catch (JSONException ex) {
-                            Logger.getLogger(Initiator.class.getName()).log(Level.SEVERE, null, ex);
-                        }
 
-                        if (!webserviceStatus.equalsIgnoreCase("true")) {
-                            throw new ValidatorException(new FacesMessage("Error : " + webserviceStatus, ""));
-                        }
-                        }else{
+                            if (!webserviceStatus.equalsIgnoreCase("true")) {
+                                throw new ValidatorException(new FacesMessage("Error : " + webserviceStatus, ""));
+                            }
+                        } else {
                             System.out.println("Invoice amount mismatch");
-                            
+
                             //show alert
                         }
-
-                       
 
                         break;
 
@@ -331,7 +329,7 @@ public class StoreUser implements FormListener {
         objGeneral = new General();
         System.out.println("----------------------Intiation Workstep Loaded from form populated.---------------------------");
         formObject.setSheetEnable("Tab2", 0, false);
-        formObject.setSelectedSheet("Tab2", 1);
+        formObject.setSelectedSheet("Tab2", 2);
         IRepeater RepeaterControlFrame5 = formObject.getRepeaterControl("Frame5");
         List<String> HeaderNames = new ArrayList<String>();
         HeaderNames.add("Registration Type");
@@ -395,6 +393,9 @@ public class StoreUser implements FormListener {
         } else {
             formObject.setNGValue("itemtypeflag", "None");
         }
+
+        formObject.setNGValue("previousactivity", activityName);
+        System.out.println("Previous Activity :" + formObject.getNGValue("previousactivity"));
 
     }
 

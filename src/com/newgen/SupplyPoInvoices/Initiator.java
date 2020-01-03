@@ -52,6 +52,7 @@ public class Initiator implements FormListener {
     String userName = null;
     String processDefId = null;
     String Query = null;
+
     List<List<String>> result;
     private String webserviceStatus;
 
@@ -231,14 +232,14 @@ public class Initiator implements FormListener {
     public void submitFormStarted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
-        System.out.println("******activityName****" + activityName);
+        
         ListView ListViewq_gateentrylines = (ListView) formObject.getComponent("q_gateentrylines");
         int RowCount_gateentrylines = ListViewq_gateentrylines.getRowCount();
         if (RowCount_gateentrylines == 0) {
             throw new ValidatorException(new FacesMessage("Kindly fetch the gate entry details", ""));
         }
-        String puflag="fromini";
-        formObject.setNGValue("Text20", puflag);
+        formObject.setNGValue("previousactivity", activityName);
+        System.out.println("Previous Activity :"+formObject.getNGValue("previousactivity"));
     }
 
     @Override

@@ -264,7 +264,8 @@ public class QualityUser implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("----------------------Intiation Workstep Loaded from form populated.---------------------------");
         formObject.setSheetEnable("Tab2", 0, false);
-        formObject.setSheetEnable("Tab2", 1, false);
+        formObject.setSheetEnable("Tab2", 2, false);
+        formObject.setSelectedSheet("Tab2", 3);
         System.out.println("farman");
         if (formObject.getNGValue("itemtypeflag").equalsIgnoreCase("Quarantine")) {
             System.out.println("farman2");
@@ -281,7 +282,6 @@ public class QualityUser implements FormListener {
                 }
             }
         } else {
-            System.out.println("false kerdiya");
             formObject.setVisible("Frame7", false);
         }
         //---------- code for qatestresultmapping
@@ -318,7 +318,8 @@ public class QualityUser implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
 
-        System.out.println("******activityName****" + activityName);
+        formObject.setNGValue("previousactivity", activityName);
+        System.out.println("Previous Activity :"+formObject.getNGValue("previousactivity"));
     }
 
     @Override

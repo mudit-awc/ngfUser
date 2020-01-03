@@ -8,6 +8,7 @@ package com.newgen.omniforms.user;
 import com.newgen.omniforms.context.FormContext;
 import com.newgen.omniforms.listener.FormListener;
 import com.newgen.SupplyPoInvoices.Initiator;
+import com.newgen.SupplyPoInvoices.PurchaseUser;
 import com.newgen.SupplyPoInvoices.QualityUser;
 import com.newgen.SupplyPoInvoices.StoreUser;
 import com.newgen.common.LogProcessing;
@@ -38,6 +39,9 @@ public class SupplyPoInvoices implements IFormListenerFactory {
         }
          else if (sActivityName.equalsIgnoreCase("QualityUser")) {
             return new QualityUser();
+        }
+        else if (sActivityName.equalsIgnoreCase("PurchaseUser")) {
+            return new PurchaseUser();
         }
         return null;
     }
