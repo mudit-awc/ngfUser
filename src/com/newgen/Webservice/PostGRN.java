@@ -23,10 +23,12 @@ public class PostGRN {
         if (IsSuccess.equalsIgnoreCase("true")) //Set Header Details
         {
             formObject.setNGValue("grnnumber", objJSONObject.optString("Voucher"));
-            formObject.setNGValue("storestatus", "Accepted");
-            formObject.setEnabled("storestatus", false);
-            formObject.setVisible("Btn_GenerateGRN", false);
-            formObject.setVisible("Btn_CancelGRN", true);
+          //  formObject.setNGValue("storestatus", "Accepted");
+            formObject.setEnabled("storestatus", false); 
+         //   formObject.setVisible("Btn_GenerateGRN", false);
+         //   formObject.setVisible("Btn_CancelGRN", true);
+                        System.out.println("storestatus ki Value set hogyi2 : "+   formObject.getNGValue("storestatus"));
+
             return IsSuccess;
         } else {
             return ErrorMessage;
@@ -44,8 +46,8 @@ public class PostGRN {
             formObject.setNGValue("grnnumber", "");
             formObject.setNGValue("storestatus", "");
             formObject.setEnabled("storestatus", true);
-            formObject.setVisible("Btn_GenerateGRN", true);
-            formObject.setVisible("Btn_CancelGRN", false);
+          //  formObject.setVisible("Btn_GenerateGRN", true);
+          //  formObject.setVisible("Btn_CancelGRN", false);
             return IsSuccess;
         } else {
             return ErrorMessage;
