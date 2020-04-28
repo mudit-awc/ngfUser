@@ -19,6 +19,7 @@ public class AccountsGeneral implements Serializable {
     List<List<String>> result, result1, result2, resultTaxDocument;
     Calculations objCalculations = null;
     General objGeneral = null;
+    String invoiceLineListXML;
     private String Query, Query1, Query2;
 
     public void setRetention(String Query, String PaymentTermId, String RetCreditFieldId, String RetPercentFieldId, String RetAmountFieldId) {
@@ -133,7 +134,7 @@ public class AccountsGeneral implements Serializable {
 //        int rowCount = ListViewq_taxdocument.getRowCount();
 //        if (rowCount == 0) {
         try {
-            System.out.println("Query :" + Query);
+            System.out.println("Query testing :" + Query);
             resultTaxDocument = formObject.getDataFromDataSource(Query);
             if (resultTaxDocument.size() > 0) {
                 String TaxDocumentXML = "";
@@ -200,7 +201,8 @@ public class AccountsGeneral implements Serializable {
                                             reversechargerate, //reverse charge %
                                             reversechargeamount, //reverse charge amount
                                             resultTaxDocument.get(i).get(14), //Non-Gst
-                                            resultTaxDocument.get(i).get(12)); //exempt
+                                            resultTaxDocument.get(i).get(12), //exempt
+                                            resultTaxDocument.get(i).get(18)); //PO Number
                                 }
                             } else {
                                 taxcomponent = "IGST";
@@ -226,7 +228,8 @@ public class AccountsGeneral implements Serializable {
                                         reversechargerate, //reverse charge %
                                         reversechargeamount, //reverse charge amount
                                         resultTaxDocument.get(i).get(14), //Non-Gst
-                                        resultTaxDocument.get(i).get(12)); //exempt
+                                        resultTaxDocument.get(i).get(12), //exempt
+                                        resultTaxDocument.get(i).get(18)); //PO Number
                             }
                         } else {
                             taxcomponent = resultTaxDocument.get(i).get(15);
@@ -250,7 +253,8 @@ public class AccountsGeneral implements Serializable {
                                     reversechargerate, //reverse charge %
                                     reversechargeamount, //reverse charge amount
                                     resultTaxDocument.get(i).get(14), //Non-Gst
-                                    resultTaxDocument.get(i).get(12)); //exempt
+                                    resultTaxDocument.get(i).get(12), //exempt
+                                    resultTaxDocument.get(i).get(18)); //PO Number
                         }
                     }
                 }
@@ -317,7 +321,7 @@ public class AccountsGeneral implements Serializable {
     String getTaxDocumentXml(String TaxDocumentXML, String LineNumber, String ItemNumber, String GSTIN, String HSNSACType,
             String HSNSACCode, String HSNSACDesc, String TaxComponent, String TaxRate, String TaxAmount, String AdjustmentTaxAmount,
             String NonBusinessUsagePer, String ReverseChargePer, String ReverseChargeAmount,
-            String NonGst, String Exempt) {
+            String NonGst, String Exempt, String ponumber) {
         TaxDocumentXML = (new StringBuilder()).append(TaxDocumentXML).
                 append("<ListItem><SubItem>").append(LineNumber). //line number
                 append("</SubItem><SubItem>").append(ItemNumber). //item number
@@ -336,6 +340,7 @@ public class AccountsGeneral implements Serializable {
                 append("</SubItem><SubItem>").append(""). //cstvat amount
                 append("</SubItem><SubItem>").append(NonGst). //Non-Gst
                 append("</SubItem><SubItem>").append(Exempt). //exempt
+                append("</SubItem><SubItem>").append(ponumber). //Po Number
                 append("</SubItem></ListItem>").toString();
 
         return TaxDocumentXML;
@@ -437,7 +442,6 @@ public class AccountsGeneral implements Serializable {
 //        if (result.size() > 0) {
 //            formObject.setNGValue("totalmaintaincharges", result.get(0).get(0));
 //        }
-
         Query = "select  COALESCE(sum(taxamountadjustment),0) from cmplx_taxdocument where "
                 + "pinstanceid = '" + processInstanceId + "'";
         System.out.println("Query: " + Query);
@@ -448,8 +452,8 @@ public class AccountsGeneral implements Serializable {
             formObject.setNGValue("totalamountwithtaxes", btotallineamount.add(btotaltaxamount));
         }
     }
-    
-     public void getsetSupplyPoSummary(String processInstanceId) {
+
+    public void getsetSupplyPoSummary(String processInstanceId) {
         formObject = FormContext.getCurrentInstance().getFormReference();
         BigDecimal btotallineamount = null;
         Query = "select COALESCE(sum(cast(amount as float)),0) from cmplx_invoiceline where pinstanceid = '" + processInstanceId + "'";
@@ -473,7 +477,6 @@ public class AccountsGeneral implements Serializable {
 //        if (result.size() > 0) {
 //            formObject.setNGValue("totalmaintaincharges", result.get(0).get(0));
 //        }
-
         Query = "select  COALESCE(sum(taxamountadjustment),0) from cmplx_taxdocument where "
                 + "pinstanceid = '" + processInstanceId + "'";
         System.out.println("Query: " + Query);
@@ -484,4 +487,5 @@ public class AccountsGeneral implements Serializable {
             formObject.setNGValue("totalamountwithtaxes", btotallineamount.add(btotaltaxamount));
         }
     }
+
 }

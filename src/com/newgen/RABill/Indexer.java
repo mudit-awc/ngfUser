@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.newgen.RABill;
 
 import com.newgen.Webservice.CallAccessTokenService;
@@ -26,10 +21,6 @@ import java.util.List;
 import javax.faces.application.FacesMessage;
 import javax.faces.validator.ValidatorException;
 
-/**
- *
- * @author Admin
- */
 public class Indexer implements FormListener {
 
     FormReference formObject = null;
@@ -38,7 +29,6 @@ public class Indexer implements FormListener {
     AccountsGeneral objAccountsGeneral = null;
     String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
             processInstanceId = null, workItemId = null, userName = null, processDefId = null, Query = null;
-
     PickList objPicklist;
     General objGeneral = null;
     Calculations objCalculations = null;
@@ -49,7 +39,6 @@ public class Indexer implements FormListener {
     public void formLoaded(FormEvent fe) {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
-
         try {
             engineName = formConfig.getConfigElement("EngineName");
             sessionId = formConfig.getConfigElement("DMSSessionId");
@@ -60,13 +49,12 @@ public class Indexer implements FormListener {
             workItemId = formConfig.getConfigElement("WorkitemId");
             userName = formConfig.getConfigElement("UserName");
             processDefId = formConfig.getConfigElement("ProcessDefId");
-
-            System.out.println("ProcessInstanceId===== " + processInstanceId);
-            System.out.println("Activityname=====" + activityName);
-            System.out.println("CabinetName====" + engineName);
-            System.out.println("sessionId====" + sessionId);
-            System.out.println("Username====" + userName);
-            System.out.println("workItemId====" + workItemId);
+//            System.out.println("ProcessInstanceId===== " + processInstanceId);
+//            System.out.println("Activityname=====" + activityName);
+//            System.out.println("CabinetName====" + engineName);
+//            System.out.println("sessionId====" + sessionId);
+//            System.out.println("Username====" + userName);
+//            System.out.println("workItemId====" + workItemId);
         } catch (Exception e) {
             System.out.println("Exception in FieldValueBagSet::::" + e.getMessage());
         }
@@ -77,7 +65,6 @@ public class Indexer implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         System.out.println("inside form populated of indexer");
         formObject.clear("filestatus");
-
         Query = "select StateName from StateMaster order by StateCode asc";
         System.out.println("Query is " + Query);
         result = formObject.getDataFromDataSource(Query);
@@ -216,81 +203,132 @@ public class Indexer implements FormListener {
                         objGeneral.setFiscalYear(formObject.getNGValue("invoicedate"), "fiscalyear");
                         break;
 
+                    case "qpo_quantity":
+//                        BigDecimal remainingQty = objGeneral.getRABillRemainingQty(new BigDecimal(formObject.getNGValue("qpo_remainingqty")));
+//                        System.out.println("Remainig qty: " + remainingQty);
+////                        formObject.setNGValue("qpo_remainingqty", remainingQty);
+////                        String overdeliverypercent = formObject.getNGValue("qpo_overdeliverypercent");
+////                        System.out.println("overdeliverypercent :" + overdeliverypercent);
+//                        String overdeliveryqty = objCalculations.calculatePercentAmount(
+//                                remainingQty.toString(),
+//                                formObject.getNGValue("qpo_overdeliverypercent")
+//                        );
+//                        System.out.println("Over delivery qty: " + overdeliveryqty);
+//                        System.out.println("Over delivery total :" + remainingQty.add(new BigDecimal(overdeliveryqty)));
+//                        formObject.setNGValue("qpo_remainingoverdeliveryqty", remainingQty.add(new BigDecimal(overdeliveryqty)));
+//                        break;
+
+//                    case "qpo_quantity":
+//                        System.out.println("inside value change of qpo_quantity");
+//                        String quantity = formObject.getNGValue("qpo_quantity");
+//                        BigDecimal bquantity = new BigDecimal(quantity);
+//                        BigDecimal remainingquantity = objGeneral.getRABillRemainingQty(new BigDecimal(formObject.getNGValue("qpo_remainingqty")));
+//                        if (bquantity.compareTo(remainingquantity) > 0) {
+//                            formObject.setNGValue("qpo_quantity", BigDecimal.ZERO);
+//                            formObject.setVisible("Btn_Add_AbstractSheet", false);
+//                            throw new ValidatorException(new FacesMessage("The Quantity can not be greater than its Remaining  Quantity :" + remainingquantity, ""));
+//                        }
+//
+//                        formObject.setNGValue("qpo_remainingqty", remainingquantity);
+//                        String overdeliverypercent = formObject.getNGValue("qpo_overdeliverypercent");
+//                        System.out.println("overdeliverypercent :" + overdeliverypercent);
+//                        String overdeliveryqty = objCalculations.calculatePercentAmount(
+//                                remainingquantity.toString(),
+//                                formObject.getNGValue("qpo_overdeliverypercent")
+//                        );
+//                        System.out.println("Over delivery qty: " + overdeliveryqty);
+//                        formObject.setNGValue("qpo_remainingoverdeliveryqty", remainingquantity.add(new BigDecimal(overdeliveryqty)));
+//                        break;
                     case "qpo_remainingqty":
                         System.out.println("inside value change qpo_remainingqty");
                         BigDecimal remainingqty = new BigDecimal(formObject.getNGValue("qpo_remainingqty"));
                         System.out.println("Rqty: " + remainingqty);
                         if (remainingqty.compareTo(BigDecimal.ZERO) == 0) {
-                            System.out.println("inside if of qpo_remainingqty");
                             formObject.setNGValue("qpo_quantity", remainingqty);
+                            formObject.setNGValue("qpo_remainingoverdeliveryqty", remainingqty);
+                            formObject.setNGValue("qpo_netamount", remainingqty);
                             formObject.setVisible("Btn_Add_AbstractSheet", false);
                             throw new ValidatorException(new FacesMessage("Remaining quantity is zero", ""));
                         } else {
                             System.out.println("inside else of qpo_remainingqty");
-                            formObject.setVisible("Btn_Add_AbstractSheet", true);
-                            System.out.println("query resturn value " + objGeneral.getRABillRemainingQty(remainingqty));
-                            formObject.setNGValue("qpo_remainingqty2", objGeneral.getRABillRemainingQty(remainingqty));
-                            formObject.setNGValue("qpo_currentquantity", objGeneral.getRABillRemainingQty(remainingqty));
-                        }
-                        break;
+                            BigDecimal remqty = objGeneral.getRABillRemainingQty(remainingqty);
 
-                    case "qpo_quantity":
-                        System.out.println("inside value change of qpo_quantity");
-                        String quantity = formObject.getNGValue("qpo_quantity");
-                        BigDecimal bquantity = new BigDecimal(quantity);
-                        BigDecimal remainingquantity = objGeneral.getRABillRemainingQty(new BigDecimal(formObject.getNGValue("qpo_remainingqty")));
-                        if (bquantity.compareTo(remainingquantity) > 0) {
-                            formObject.setNGValue("qpo_quantity", BigDecimal.ZERO);
-                            // formObject.setNGValue("qpo_amount", BigDecimal.ZERO);
-                            // formObject.setNGValue("qpo_amountwithtax", BigDecimal.ZERO);
-                            formObject.setVisible("Btn_Add_AbstractSheet", false);
-                            throw new ValidatorException(new FacesMessage("The Quantity can not be greater than its Remaining  Quantity :" + remainingquantity, ""));
-                        }
+                            System.out.println("Remainig qty: " + remqty);
+                            String overdeliveryqty = objCalculations.calculatePercentAmount(
+                                    remqty.toString(),
+                                    formObject.getNGValue("qpo_overdeliverypercent")
+                            );
+                            System.out.println("Over delivery qty: " + overdeliveryqty);
+                            System.out.println("Over delivery total :" + remqty.add(new BigDecimal(overdeliveryqty)));
+                            formObject.setNGValue("qpo_remainingoverdeliveryqty", remqty.add(new BigDecimal(overdeliveryqty)));
 
-                        formObject.setNGValue("qpo_remainingqty", remainingquantity);
-                        String overdeliverypercent = formObject.getNGValue("qpo_overdeliverypercent");
-                        System.out.println("overdeliverypercent :" + overdeliverypercent);
-                        String overdeliveryqty = objCalculations.calculatePercentAmount(
-                                remainingquantity.toString(),
-                                formObject.getNGValue("qpo_overdeliverypercent")
-                        );
-                        System.out.println("Over delivery qty: " + overdeliveryqty);
-                        formObject.setNGValue("qpo_remainingoverdeliveryqty", remainingquantity.add(new BigDecimal(overdeliveryqty)));
+                            formObject.setNGValue("qpo_remainingqty2", remqty);
+                            formObject.setNGValue("qpo_currentquantity", remqty);
+                            if (remqty.compareTo(BigDecimal.ZERO) == 0) {
+                                formObject.setEnabled("qpo_currentquantity", false);
+                                formObject.setVisible("Btn_Add_AbstractSheet", false);
+                                throw new ValidatorException(new FacesMessage("Remaining quantity is zero", ""));
+                            } else {
+                                formObject.setEnabled("qpo_currentquantity", true);
+                                formObject.setVisible("Btn_Add_AbstractSheet", true);
+                            }
+                        }
                         break;
 
                     case "qpo_currentquantity":
-                        System.out.println("inside qpo_currentquantity");
-                        boolean errorflag = false;
-                        String errormsg = "";
-                        System.out.println("qpo_currentquantity value : " + formObject.getNGValue("qpo_currentquantity"));
-                        float qpo_currentquantity = Float.parseFloat(formObject.getNGValue("qpo_currentquantity"));
-                        System.out.println("qpo_currentquantity float: " + qpo_currentquantity);
-                        System.out.println("errorflag 1;" + errorflag);
-                        if (qpo_currentquantity == 0) {
-                            errorflag = true;
-                            errormsg = "Quantity can't be zero";
+                        BigDecimal qpo_currentquantity = new BigDecimal(formObject.getNGValue("qpo_currentquantity"));
+                        BigDecimal qpo_remainingoverdeliveryqty = new BigDecimal(formObject.getNGValue("qpo_remainingoverdeliveryqty"));
+
+                        if (qpo_currentquantity.compareTo(BigDecimal.ZERO) == 0) {
+                            formObject.setVisible("Btn_Add_AbstractSheet", false);
+                            throw new ValidatorException(new FacesMessage("Quantity can not be zero", ""));
                         }
-                        System.out.println("errorflag 2;" + errorflag);
-                        if (qpo_currentquantity > Float.parseFloat(formObject.getNGValue("qpo_remainingoverdeliveryqty"))) {
-                            System.out.println("abcd");
-                            errorflag = true;
-                            errormsg = "Entered quantity exceed the remaining quantity";
-                        }
-                        System.out.println("errorflag 3;" + errorflag);
-                        if (errorflag) {
-                            System.out.println("inside errorflag");
-                            formObject.setNGValue("qpo_currentquantity", formObject.getNGValue("qpo_remainingoverdeliveryqty"));
-                            BigDecimal remnetamount = new BigDecimal(qpo_currentquantity).multiply(new BigDecimal(formObject.getNGValue("qpo_unitprice"))).setScale(2, BigDecimal.ROUND_FLOOR);
-                            formObject.setNGValue("qpo_netamount", remnetamount);
-                            formObject.setNGValue("qpo_assessableamount", remnetamount);
-                            throw new ValidatorException(new FacesMessage(errormsg, ""));
+                        if (qpo_currentquantity.compareTo(qpo_remainingoverdeliveryqty) > 0) {
+                            formObject.setVisible("Btn_Add_AbstractSheet", false);
+                            throw new ValidatorException(new FacesMessage("Quantity can not be greater than over delivery quantity", ""));
                         } else {
                             System.out.println("else of errorflag");
                             System.out.println("unit price : " + formObject.getNGValue("qpo_unitprice"));
-                            BigDecimal remnetamount = new BigDecimal(qpo_currentquantity).multiply(new BigDecimal(formObject.getNGValue("qpo_unitprice"))).setScale(2, BigDecimal.ROUND_FLOOR);
+                            BigDecimal remnetamount = qpo_currentquantity.multiply(
+                                    new BigDecimal(formObject.getNGValue("qpo_unitprice"))
+                            ).setScale(2, BigDecimal.ROUND_FLOOR);
                             formObject.setNGValue("qpo_netamount", remnetamount);
                             formObject.setNGValue("qpo_assessableamount", remnetamount);
+                            formObject.setVisible("Btn_Add_AbstractSheet", true);
                         }
+
+//                        System.out.println("inside qpo_currentquantity");
+//                        boolean errorflag = false;
+//                        String errormsg = "";
+//                        System.out.println("qpo_currentquantity value : " + formObject.getNGValue("qpo_currentquantity"));
+//                        float qpo_currentquantity = Float.parseFloat(formObject.getNGValue("qpo_currentquantity"));
+//                        System.out.println("qpo_currentquantity float: " + qpo_currentquantity);
+//                        System.out.println("errorflag 1;" + errorflag);
+//                        if (qpo_currentquantity == 0) {
+//                            errorflag = true;
+//                            errormsg = "Quantity can't be zero";
+//                        }
+//                        System.out.println("errorflag 2;" + errorflag);
+//                        if (qpo_currentquantity > Float.parseFloat(formObject.getNGValue("qpo_remainingoverdeliveryqty"))) {
+//                            System.out.println("abcd");
+//                            errorflag = true;
+//                            errormsg = "Entered quantity exceed the remaining quantity";
+//                        }
+//                        System.out.println("errorflag 3;" + errorflag);
+//                        if (errorflag) {
+//                            System.out.println("inside errorflag");
+//                            formObject.setNGValue("qpo_currentquantity", formObject.getNGValue("qpo_remainingoverdeliveryqty"));
+//                            BigDecimal remnetamount = new BigDecimal(qpo_currentquantity).multiply(new BigDecimal(formObject.getNGValue("qpo_unitprice"))).setScale(2, BigDecimal.ROUND_FLOOR);
+//                            formObject.setNGValue("qpo_netamount", remnetamount);
+//                            formObject.setNGValue("qpo_assessableamount", remnetamount);
+//                            throw new ValidatorException(new FacesMessage(errormsg, ""));
+//                        } else {
+//                            System.out.println("else of errorflag");
+//                            System.out.println("unit price : " + formObject.getNGValue("qpo_unitprice"));
+//                            BigDecimal remnetamount = new BigDecimal(qpo_currentquantity).multiply(new BigDecimal(formObject.getNGValue("qpo_unitprice"))).setScale(2, BigDecimal.ROUND_FLOOR);
+//                            formObject.setNGValue("qpo_netamount", remnetamount);
+//                            formObject.setNGValue("qpo_assessableamount", remnetamount);
+//                        }
                         break;
 
                     case "location":
@@ -599,18 +637,17 @@ public class Indexer implements FormListener {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    BigDecimal getRemainingQty() {
-        formObject = FormContext.getCurrentInstance().getFormReference();
-        ListView ListViewq_polinedetails = (ListView) formObject.getComponent("q_polinedetails");
-        int selectedRowIndex = ListViewq_polinedetails.getSelectedRowIndex();
-        System.out.println("Selected index: " + selectedRowIndex);
-        BigDecimal totalQty = new BigDecimal(formObject.getNGValue("q_polinedetails", selectedRowIndex, 3)).setScale(2, BigDecimal.ROUND_FLOOR);
-        BigDecimal receivedQty = new BigDecimal(formObject.getNGValue("q_polinedetails", selectedRowIndex, 72)).setScale(2, BigDecimal.ROUND_FLOOR);
-        formObject.setNGValue("qpo_unitprice", formObject.getNGValue("q_polinedetails", selectedRowIndex, 5));
-        formObject.setNGValue("qpo_overdeliverypercent", formObject.getNGValue("q_polinedetails", selectedRowIndex, 45));
-        return totalQty.subtract(receivedQty).setScale(2, BigDecimal.ROUND_FLOOR);
-    }
-
+//    BigDecimal getRemainingQty() {
+//        formObject = FormContext.getCurrentInstance().getFormReference();
+//        ListView ListViewq_polinedetails = (ListView) formObject.getComponent("q_polinedetails");
+//        int selectedRowIndex = ListViewq_polinedetails.getSelectedRowIndex();
+//        System.out.println("Selected index: " + selectedRowIndex);
+//        BigDecimal totalQty = new BigDecimal(formObject.getNGValue("q_polinedetails", selectedRowIndex, 3)).setScale(2, BigDecimal.ROUND_FLOOR);
+//        BigDecimal receivedQty = new BigDecimal(formObject.getNGValue("q_polinedetails", selectedRowIndex, 72)).setScale(2, BigDecimal.ROUND_FLOOR);
+//        formObject.setNGValue("qpo_unitprice", formObject.getNGValue("q_polinedetails", selectedRowIndex, 5));
+//        formObject.setNGValue("qpo_overdeliverypercent", formObject.getNGValue("q_polinedetails", selectedRowIndex, 45));
+//        return totalQty.subtract(receivedQty).setScale(2, BigDecimal.ROUND_FLOOR);
+//    }
     void addProjectCode() {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formObject.clear("ij_projectcode");

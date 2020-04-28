@@ -173,6 +173,20 @@ public class Accounts implements FormListener {
                 objGeneral.setException(userName, "Combo1", "Text69");
                 formObject.setNGValue("nextactivity", "PurchaseUser");
             }
+            Query = "select COUNT(*) from cmplx_raitemjournal where pinstanceid = '" + processInstanceId + "'";
+            result = formObject.getDataFromDataSource(Query);
+            System.out.println("Query: " + Query);
+            System.out.println("resul: " + result);
+            int journalsyncrequired = Integer.parseInt(result.get(0).get(0));
+            System.out.println("journalsyncrequired : " + journalsyncrequired);
+            if (journalsyncrequired == 0) {
+                System.out.println("journalsyncrequired is zero hence set False");
+                formObject.setNGValue("journalsyncrequired", "False");
+            } else if (journalsyncrequired > 0) {
+                System.out.println("journalsyncrequired is greater then zero hence set True");
+                formObject.setNGValue("journalsyncrequired", "True");
+            }
+
             objAccountsGeneral.getsetRABILLSummary(processInstanceId);
             formObject.setNGValue("previousactivity", activityName);
             objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
@@ -560,11 +574,11 @@ public class Accounts implements FormListener {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    void applyTaxToAll(int RowIndex, String LedgerAccount, String TaxComponent) {
+    void applyTaxToAll(int RowIndex, String ProjectCode, String TaxComponent) {
         String nonbusinessusagepercent = "";
         String Query = "select projectdebitamount from cmplx_linejournal where "
                 + "pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "' "
-                + "and projectcode = '" + formObject.getNGValue("qratd_projectcode") + "'";
+                + "and projectcode = '" + ProjectCode + "'";
 
         String taxamount = objCalculations.calculatePercentAmount(
                 formObject.getDataFromDataSource(Query).get(0).get(0),

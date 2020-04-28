@@ -255,29 +255,8 @@ public class Initiator implements FormListener {
         System.out.println("----------------------Intiation Workstep Loaded from form populated.---------------------------");
         formObject.setNGValue("initiatorstatus", null);
         formObject.setNGValue("initiatorremarks", null);
-
-//        String purchaseorderno = formObject.getNGValue("purchaseorderno");
-//        if (!purchaseorderno.equalsIgnoreCase("")) {
-//            populatePurchaseOrder(purchaseorderno);
-//            String invoiceno = formObject.getNGValue("invoiceno");
-//            if (!invoiceno.equalsIgnoreCase("")) {
-//                populateGateEntry(purchaseorderno, invoiceno);
-//            }
-//        }
-        IRepeater OtherCharges = formObject.getRepeaterControl("OtherCharges");
-        List<String> OtherCharges_HeaderNames = new ArrayList<>();
-        OtherCharges_HeaderNames.add(0, "Line Number");
-        OtherCharges_HeaderNames.add(1, "Charge Type");
-        OtherCharges_HeaderNames.add(2, "Charges Code");
-        OtherCharges_HeaderNames.add(3, "Category");
-        OtherCharges_HeaderNames.add(4, "Assessable Value");
-        OtherCharges_HeaderNames.add(5, "Charges Value");
-        OtherCharges_HeaderNames.add(6, "Calculated Amount");
-        OtherCharges_HeaderNames.add(7, "Vendor Account");
-        OtherCharges.setRepeaterHeaders(OtherCharges_HeaderNames);
-
-      //  SupplyPoRepeaterHeader repeater = new SupplyPoRepeaterHeader();
-      //  repeater.repeaterHeader();
+        
+        formObject.setNGValue("multiplegrn", "False");
 
     }
 

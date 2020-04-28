@@ -7,6 +7,7 @@ package com.newgen.SupplyPoInvoices;
 
 import com.newgen.Webservice.CallAccessTokenService;
 import com.newgen.Webservice.CallPrePaymentService;
+import com.newgen.Webservice.CallPurchaseOrderService;
 import com.newgen.common.AccountsGeneral;
 import com.newgen.common.Calculations;
 import com.newgen.common.General;
@@ -35,8 +36,8 @@ public class AccountUser implements FormListener {
 
     FormReference formObject = null;
     FormConfig formConfig = null;
-    String activityName = null;
-    String Query = null, Query1 = null, processInstanceId = null;
+    String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
+            processInstanceId = null, workItemId = null, userName = null, processDefId = null, Query = null, Query1 = null;
     List<List<String>> result = null;
     List<List<String>> result1 = null;
     Calculations objCalculations = null;
@@ -46,11 +47,31 @@ public class AccountUser implements FormListener {
 
     @Override
     public void formLoaded(FormEvent fe) {
+        System.out.println(" -------------------Intiation Workstep Loaded from formloaded.----------------");
+        // TODO Auto-generated method stub
+        System.out.println("form Loaded called : 20/05/2019");
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         try {
+            // objGeneral = new General();
+            engineName = formConfig.getConfigElement("EngineName");
+            sessionId = formConfig.getConfigElement("DMSSessionId");
+            folderId = formConfig.getConfigElement("FolderId");
+            serverUrl = formConfig.getConfigElement("ServletPath");
             activityName = formObject.getWFActivityName();
             processInstanceId = formConfig.getConfigElement("ProcessInstanceId");
+            workItemId = formConfig.getConfigElement("WorkitemId");
+            userName = formConfig.getConfigElement("UserName");
+            processDefId = formConfig.getConfigElement("ProcessDefId");
+
+            System.out.println("ProcessInstanceId===== " + processInstanceId);
+            System.out.println("Activityname=====" + activityName);
+            System.out.println("CabinetName====" + engineName);
+            System.out.println("sessionId====" + sessionId);
+            System.out.println("Username====" + userName);
+            System.out.println("workItemId====" + workItemId);
+
+//  ************************************************************************************
         } catch (Exception e) {
             System.out.println("Exception in FieldValueBagSet::::" + e.getMessage());
         }
@@ -61,22 +82,32 @@ public class AccountUser implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objGeneral = new General();
-        if (formObject.getNGValue("IntroducedAt").equalsIgnoreCase("MultipleGRNInvoicing")) {
+        formObject.setNGValue("processid", processInstanceId);
+        if ("MultipleGRNInvoicing".equalsIgnoreCase(formObject.getNGValue("IntroducedAt"))
+                || activityName.equalsIgnoreCase("MultipleGRNInvoicing")) {
+            formObject.setNGValue("multiplegrn", "True");
+            Query = "select distinct ext.purchaseorderno from ext_supplypoinvoices ext, WFINSTRUMENTTABLE wf "
+                    + "where wf.ProcessInstanceID = ext.processid "
+                    + "and wf.ActivityName='AccountsUser' "
+                    + "and ext.multiplegrn='False' "
+                    + "and ext.purchaseorderno is not null";
+            System.out.println("Query: " + Query);
+            result = formObject.getDataFromDataSource(Query);
+            for (int i = 0; i < result.size(); i++) {
+                formObject.addComboItem("purchaseorderno", result.get(i).get(0), result.get(i).get(0));
+            }
             formObject.setVisible("Frame11", true);
             formObject.setVisible("Frame9", false);
         }
 
         formObject.setNGValue("challanflag", "false");
         formObject.setSelectedSheet("Tab2", 4);
-
         String currentdate = objGeneral.getCurrentDate();
         System.out.println("currentdate : " + currentdate);
         if ("".equalsIgnoreCase(formObject.getNGValue("postingdate"))) {
-            System.out.println("postingdate khaali h");
             formObject.setNGValue("postingdate", currentdate);
         }
         if ("".equalsIgnoreCase(formObject.getNGValue("duedate"))) {
-            System.out.println("duedate khaali h");
             formObject.setNGValue("duedate", currentdate);
         }
 
@@ -290,11 +321,56 @@ public class AccountUser implements FormListener {
                             throw new ValidatorException(new FacesMessage("Not Applicable"));
                         }
                         break;
+
+                    case "Btn_add_multplegrn":
+                        String grnnumber = formObject.getNGValue("q_grn");
+                        Query = "select count(*) from cmplx_multiplegrninvoicing where "
+                                + "pinstanceid = '" + processInstanceId + "' and grnnumber = '" + grnnumber + "'";
+                        System.out.println("Query : " + Query);
+
+                        if (formObject.getDataFromDataSource(Query).get(0).get(0).equals("0")) {
+                            addMultipleGRN(grnnumber);
+                            formObject.RaiseEvent("WFSave");
+                        } else {
+                            throw new ValidatorException(new FacesMessage("GRN number already added.", ""));
+                        }
+                        break;
+
+                    case "Btn_delete_multiplegrn":
+                        formObject.ExecuteExternalCommand("NGDeleteRow", "q_multiplegrninvoicing");
+                        formObject.RaiseEvent("WFSave");
+                        formObject.clear("q_polines");
+                        formObject.clear("q_gateentrylines");
+                        formObject.clear("q_invoiceline");
+                        formObject.clear("q_othercharges");
+                        formObject.clear("q_withholdingtax");
+                        formObject.clear("q_taxdocument");
+                        formObject.clear("q_prepayment");
+                        formObject.setNGValue("retentioncredit", "");
+                        formObject.setNGValue("retentionpercent", "");
+                        formObject.setNGValue("retentioncredit", "");
+                        formObject.setNGValue("retentionamount", "");
+                        formObject.setNGValue("companytaxinformation", "");
+                        formObject.setNGValue("companyaddress", "");
+                        formObject.setNGValue("vendortaxinformation", "");
+                        formObject.setNGValue("vendoraddress", "");
+                        break;
+
+                    case "Btn_combine":
+                        System.out.println("button click Btn_combine");
+                        CombineMultipleGrn();
+                        break;
                 }
                 break;
             case "VALUE_CHANGED":
 
                 switch (pEvent.getSource().getName()) {
+                    case "invoicedate":
+                        System.out.println("value set ho rhi h");
+                        objGeneral.setFiscalYear(formObject.getNGValue("invoicedate"), "fiscalyear");
+                        System.out.println("value set hogyi");
+                        break;
+
                     case "qwht_tdspercent":
                         float checker = Float.parseFloat(formObject.getNGValue("qwht_tdspercent"));
                         System.out.println("checker " + checker);
@@ -382,6 +458,26 @@ public class AccountUser implements FormListener {
                             formObject.setVisible("Btn_Delete_Maintaincharges", false);
                             formObject.setVisible("qoc_assessablevalue", false);
                         }
+                        break;
+
+                    case "grnstartdate":
+                    case "grnenddate":
+                        formObject.clear("q_grn");
+                        formObject.clear("q_multiplegrninvoicing");
+                        Query = "select grnnumber from ext_supplypoinvoices "
+                                + "where purchaseorderno = '" + formObject.getNGValue("purchaseorderno") + "' "
+                                + "and multiplegrn='False' "
+                                + "and format(grnsyncdate,'dd/MM/yyyy') "
+                                + "between '" + formObject.getNGValue("grnstartdate") + "' "
+                                + "and '" + formObject.getNGValue("grnenddate") + "'";
+                        System.out.println("Query: " + Query);
+                        List<List<String>> grnresult = formObject.getDataFromDataSource(Query);
+                        for (int i = 0; i < grnresult.size(); i++) {
+                            String grnnumber = grnresult.get(i).get(0);
+                            formObject.addComboItem("q_grn", grnnumber, grnnumber);
+                            addMultipleGRN(grnnumber);
+                        }
+                        formObject.RaiseEvent("WFSave");
                         break;
 
                 }
@@ -497,7 +593,7 @@ public class AccountUser implements FormListener {
                                 System.out.println("Inside case 7 Tax Document ");
                                 Query = "select po.linenumber,po.itemnumber,gstin_gdi_uid,hsn,sac,igstrate,igsttaxamount,"
                                         + "cgstrate,cgsttaxamount,sgstrate,sgsttaxamount,nonbusinessusagepercent,exempt,"
-                                        + "inv.newassessableamount,po.nongst,po.taxratetype,po.vatrate,po.vattaxamount "
+                                        + "inv.newassessableamount,po.nongst,po.taxratetype,po.vatrate,po.vattaxamount,po.purchaseorderno "
                                         + "from cmplx_poline po, cmplx_invoiceline inv where "
                                         + "po.pinstanceid = '" + processInstanceId + "' and po.pinstanceid = inv.pinstanceid "
                                         + "and po.linenumber = inv.linenumber and po.itemnumber = inv.itemid ";
@@ -590,5 +686,136 @@ public class AccountUser implements FormListener {
             }
 
         }
+    }
+
+    void addMultipleGRN(String GRNnumber) {
+        System.out.println("Inside btn add multiple grn");
+        Query = "select processid , grnnumber,  format(grnsyncdate,'dd/MM/yyyy'), gateentryid, invoiceno,format(invoicedate,'dd/MM/yyyy'), "
+                + "invoiceamount, lrno, format(lrdate,'dd/MM/yyyy'), loadingcity, transportercode, transportername, "
+                + "vehicleno from ext_supplypoinvoices where grnnumber = '" + GRNnumber + "'";
+        System.out.println("Query: " + Query);
+        result = formObject.getDataFromDataSource(Query);
+        String MultipleGrnXML = "";
+        MultipleGrnXML = (new StringBuilder()).append(MultipleGrnXML).
+                append("<ListItem><SubItem>").append(result.get(0).get(0)). //pid
+                append("</SubItem><SubItem>").append(result.get(0).get(1)). //grn number
+                append("</SubItem><SubItem>").append(result.get(0).get(2)). //grn date
+                append("</SubItem><SubItem>").append(result.get(0).get(3)). //gate netry id
+                append("</SubItem><SubItem>").append(result.get(0).get(4)). //invoice number
+                append("</SubItem><SubItem>").append(result.get(0).get(5)). //invoice date
+                append("</SubItem><SubItem>").append(result.get(0).get(6)). //invoice amount
+                append("</SubItem><SubItem>").append(result.get(0).get(7)). //lr number
+                append("</SubItem><SubItem>").append(result.get(0).get(8)). //lr date
+                append("</SubItem><SubItem>").append(result.get(0).get(9)). //loading city
+                append("</SubItem><SubItem>").append(result.get(0).get(10)). //transporter code
+                append("</SubItem><SubItem>").append(result.get(0).get(11)). //transporter name
+                append("</SubItem><SubItem>").append(result.get(0).get(12)). //vehicle number
+                append("</SubItem></ListItem>").toString();
+
+        System.out.println("XML :" + MultipleGrnXML);
+        formObject.NGAddListItem("q_multiplegrninvoicing", MultipleGrnXML);
+    }
+
+    void CombineMultipleGrn() {
+        System.out.println("inside CombineMultipleGrn");
+        Query = "select linenumber, itemid, itemname, challanqty, grnqty, wbfirstwt,wbsecondwt, "
+                + "wbnetweight, ponumber,freight,businessunit,state,costcentergroup,costcenter,department,gla from cmplx_gateentryline "
+                + "where pinstanceid in (select grnprocessid from cmplx_multiplegrninvoicing where "
+                + "pinstanceid = '" + processInstanceId + "')";
+        System.out.println("Query :" + Query);
+        result = formObject.getDataFromDataSource(Query);
+        System.out.println("result : "+result);
+        for (int i = 0; i < result.size(); i++) {
+            System.out.println("inside for "+i);
+            ListView listview1 = (ListView) formObject.getComponent("q_gateentrylines");
+            int rowcount = listview1.getRowCount();
+            String GateLineContractXML = "";
+            String q_linenumber = result.get(i).get(0);
+            String q_itemnumber = result.get(i).get(1);
+
+            if (rowcount == 0 && i == 0) {
+                System.out.println("inside if of ==zero");
+                GateLineContractXML = (new StringBuilder()).append(GateLineContractXML).
+                        append("<ListItem><SubItem>").append(result.get(0).get(0)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(1)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(2)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(3)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(4)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(5)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(6)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(7)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(8)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(9)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(10)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(11)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(12)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(13)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(14)).
+                        append("</SubItem><SubItem>").append(result.get(0).get(15)).
+                        append("</SubItem></ListItem>").toString();
+                System.out.println("GateLineContractXML :" + GateLineContractXML);
+                formObject.NGAddListItem("q_gateentrylines", GateLineContractXML);
+            } else {
+                System.out.println("inside else");
+                boolean itemexistflag = false;
+                for (int j = 0; j < rowcount; j++) {
+                    String ge_linenumber = formObject.getNGValue("q_gateentrylines", j, 0);
+                    String ge_itemnumber = formObject.getNGValue("q_gateentrylines", j, 1);
+
+                    if (ge_itemnumber.equalsIgnoreCase(q_itemnumber)
+                            && ge_linenumber.equals(q_linenumber)) {
+                        System.out.println("Item matched breaking loop");
+                        itemexistflag = true;
+
+                        BigDecimal challanqty = new BigDecimal(formObject.getNGValue("q_gateentrylines", j, 3));
+                        BigDecimal grnqty = new BigDecimal(formObject.getNGValue("q_gateentrylines", j, 4));
+                        BigDecimal wbfirstwt = new BigDecimal(formObject.getNGValue("q_gateentrylines", j, 5));
+                        BigDecimal wbsecondwt = new BigDecimal(formObject.getNGValue("q_gateentrylines", j, 6));
+                        BigDecimal wbnetwt = new BigDecimal(formObject.getNGValue("q_gateentrylines", j, 7));
+
+                        BigDecimal q_challanqty = new BigDecimal(result.get(i).get(3));
+                        BigDecimal q_grnqty = new BigDecimal(result.get(i).get(4));
+                        BigDecimal q_wbfirstwt = new BigDecimal(result.get(i).get(5));
+                        BigDecimal q_wbsecondwt = new BigDecimal(result.get(i).get(6));
+                        BigDecimal q_wbnetwt = new BigDecimal(result.get(i).get(7));
+
+                        formObject.setNGValue("q_gateentrylines", j, 3, challanqty.add(q_challanqty).toString());
+                        formObject.setNGValue("q_gateentrylines", j, 4, grnqty.add(q_grnqty).toString());
+                        formObject.setNGValue("q_gateentrylines", j, 5, wbfirstwt.add(q_wbfirstwt).toString());
+                        formObject.setNGValue("q_gateentrylines", j, 6, wbsecondwt.add(q_wbsecondwt).toString());
+                        formObject.setNGValue("q_gateentrylines", j, 7, q_wbnetwt.add(q_wbnetwt).toString());
+
+                        break;
+                    }
+                }
+
+                if (itemexistflag == false) {
+                    System.out.println("Item does not matched");
+                    GateLineContractXML = (new StringBuilder()).append(GateLineContractXML).
+                            append("<ListItem><SubItem>").append(result.get(i).get(0)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(1)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(2)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(3)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(4)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(5)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(6)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(7)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(8)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(9)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(10)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(11)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(12)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(13)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(14)).
+                            append("</SubItem><SubItem>").append(result.get(i).get(15)).
+                            append("</SubItem></ListItem>").toString();
+                    System.out.println("GateLineContractXML :" + GateLineContractXML);
+                    formObject.NGAddListItem("q_gateentrylines", GateLineContractXML);
+                }
+            }
+//                            String AccessToken = new CallAccessTokenService().getAccessToken();
+            new CallPurchaseOrderService().GetSetPurchaseOrder("", "Supply", formObject.getNGValue("purchaseorderno"), "Supply");
+        }
+        formObject.RaiseEvent("WFSave");
     }
 }

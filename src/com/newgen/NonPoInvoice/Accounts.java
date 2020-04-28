@@ -624,8 +624,8 @@ public class Accounts implements FormListener {
                             nextactivity = "Accounts";
                         }
                     } else if (levelflag.equalsIgnoreCase("Checker")) {
-                        strLevelFlag = "SchedularAccount";
-                        nextactivity = "SchedularAccount";
+                        strLevelFlag = "SchedulerAccount";
+                        nextactivity = "SchedulerAccount";
                     }
                 } else if (filestatus.equalsIgnoreCase("Query Raised")) {
                     nextactivity = "Initiator";

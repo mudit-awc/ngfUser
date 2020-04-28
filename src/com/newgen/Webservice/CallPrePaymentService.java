@@ -5,6 +5,7 @@
  */
 package com.newgen.Webservice;
 
+import com.newgen.common.AccountsGeneral;
 import com.newgen.common.General;
 import com.newgen.common.ReadProperty;
 import com.newgen.omniforms.FormConfig;
@@ -64,6 +65,7 @@ public class CallPrePaymentService {
                 Query = "select purchaseorderno from cmplx_multiplepo where pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "'";
                 result = formObject.getDataFromDataSource(Query);
                 if (result.size() > 0) {
+                    formObject.setNGValue("po_number1", result.get(0).get(0));
                     for (int i = 0; i < result.size(); i++) {
                         //request_json.put("_PONumber", result.get(i).get(0));
                         ////new code Started
@@ -127,10 +129,25 @@ public class CallPrePaymentService {
                     //  System.out.println("settleamount : " + settleamount);
                     //  remainingAmount = totalAmount - settleamount;
                     //  System.out.println("remainingAmount : " + remainingAmount);
+                    System.out.println("invoicelinelist length is : " + objJSONArray_invoiceLineList.length());
+                    String remaining_amount_newgen;
+                    String Po_number = objJSONArray_POList.getJSONObject(i).optString("purchId");
+                    String Invoice_no = objJSONArray_invoiceLineList.getJSONObject(j).optString("invoiceID");
+                    Query = "select remainingamountnewgen from cmplx_prepayment where purchaseorderno='" + Po_number + "' and prepaymentinvoicenumber = '" + Invoice_no + "' and pinstanceid in (select top 1 processid from ext_servicepoinvoice where nextactivity = 'SchedulerAccount' and postingsyncstatus != 'Success' order by processid desc);                                                  ";
+                    System.out.println("Query prepayment: "+Query);
+                    result = formObject.getDataFromDataSource(Query);
+                    System.out.println("result: "+result);
+                    if(result.size()>0){
+                         remaining_amount_newgen = result.get(0).get(0);
+                    }
+                    else{
+                        remaining_amount_newgen = objJSONArray_invoiceLineList.getJSONObject(j).optString("settleAmount");
+                    }
                     invoiceLineListXML = (new StringBuilder()).append(invoiceLineListXML).
                             append("<ListItem><SubItem>").append(objJSONArray_invoiceLineList.getJSONObject(j).optString("invoiceID")).
                             append("</SubItem><SubItem>").append(objJSONArray_invoiceLineList.getJSONObject(j).optString("totalAmount")).
                             append("</SubItem><SubItem>").append("0").
+                            append("</SubItem><SubItem>").append(remaining_amount_newgen).
                             append("</SubItem><SubItem>").append(objJSONArray_invoiceLineList.getJSONObject(j).optString("settleAmount")).//remaining amount
                             append("</SubItem><SubItem>").append(objJSONArray_POList.getJSONObject(i).optString("purchId")). //po number
                             append("</SubItem></ListItem>").toString();
@@ -144,10 +161,10 @@ public class CallPrePaymentService {
                 Query = "select count(*) from cmplx_prepayment where pinstanceid ='" + pid + "'";
                 result = formObject.getDataFromDataSource(Query);
                 if ("0".equalsIgnoreCase(result.get(0).get(0))) {
-                    System.out.println("adding line");
-                    formObject.clear("q_prepayment");
-                    formObject.NGAddListItem("q_prepayment", invoiceLineListXML);
-                    formObject.RaiseEvent("WFSave");
+                            System.out.println("adding line");
+                            formObject.clear("q_prepayment");
+                            formObject.NGAddListItem("q_prepayment", invoiceLineListXML);
+                            formObject.RaiseEvent("WFSave");
                 }
             } catch (Exception e) {
                 System.out.println("Exception in adding line item :" + e);

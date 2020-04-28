@@ -58,6 +58,8 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         TextBox comp = (TextBox) obj.getComponent(controlName);
         if (controlName.equalsIgnoreCase("q_sb_registrationno") || controlName.equalsIgnoreCase("department")) {
             index = 0;
+        } else if (controlName.equalsIgnoreCase("qoc_linenumber")) {
+            index = 2;
         } else {
             index = 1;
         }
@@ -575,6 +577,13 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                 }
             }
         }
+        if (controlName.equalsIgnoreCase("qoc_linenumber")) {
+            formObject.setNGValue("qoc_linenumber", m_objPickList.getSelectedValue().get(0));
+            formObject.setNGValue("qoc_itemnumber", m_objPickList.getSelectedValue().get(1));
+            formObject.setNGValue("qoc_ponumber", m_objPickList.getSelectedValue().get(2));
+           // comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1) + "-" + m_objPickList.getSelectedValue().get(2));
+          //  OFUtility.render(comp);
+        }
 
     }
 
@@ -1016,6 +1025,17 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                         + "or upper(TEFRLineItemId) like '%" + filter_value.trim().toUpperCase() + "%')";
             } else {
                 query = "Select TEFRId, TEFRLineItemId from TEFRMaster where businessunit = '" + formObject.getNGValue("site") + "'";
+            }
+        } else if (controlName.equalsIgnoreCase("qoc_linenumber")) {
+            System.out.println("inside button search of qoc_linenumber");
+            if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
+                query = "select linenumber,itemid,purchaseorderno from cmplx_invoicedetails "
+                        + "where pinstanceid ='" + formConfig.getConfigElement("ProcessInstanceId") + "'"
+                        + "and (upper(linenumber) like '%" + filter_value.trim().toUpperCase() + "%' "
+                        + "or upper(itemid) like '%" + filter_value.trim().toUpperCase() + "%'"
+                        + "or upper(purchaseorderno) like '%" + filter_value.trim().toUpperCase() + "%')";
+            } else {
+                query = "select linenumber,itemid,purchaseorderno from cmplx_invoicedetails where pinstanceid ='" + formConfig.getConfigElement("ProcessInstanceId") + "'";
             }
         }
 

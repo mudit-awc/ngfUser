@@ -97,9 +97,7 @@ public class Initiator implements FormListener {
 
                     case "qpo_remainingqty":
                         BigDecimal remainingqty = new BigDecimal(formObject.getNGValue("qpo_remainingqty"));
-                       // BigDecimal poqty = new BigDecimal(formObject.getNGValue("qpo_poquantity"));
                         System.out.println("Rqty: " + remainingqty);
-                      //  System.out.println("POqty: " + poqty);
                         if (remainingqty.compareTo(BigDecimal.ZERO) == 0) {
                             formObject.setNGValue("qpo_quantity", remainingqty);
                             formObject.setEnabled("qpo_quantity", false);
