@@ -64,9 +64,9 @@ public class Initiator implements FormListener {
                         objGeneral.setFiscalYear(formObject.getNGValue("invoicedate"), "fiscalyear");
                         break;
 
-                    case "baseamount":
+                    case "invoiceamount":
                     case "exchangerateotherthaninr":
-                        objCalculations.exronBaseamountandExchangerateChange("currency", "baseamount", "newbaseamount", "exchangerateotherthaninr");
+                        objCalculations.exronBaseamountandExchangerateChange("currency", "invoiceamount", "newbaseamount", "exchangerateotherthaninr");
                         break;
 
                     case "currency":
@@ -94,6 +94,35 @@ public class Initiator implements FormListener {
                             formObject.setNGValue("VendorName", accountn);
                         }
                         break;
+
+                    case "accountcode":
+//                        CallVebndorService vendorservice = new CallVebndorService();
+//                        String AccessToken = new CallAccessTokenService().getAccessToken();
+//                        vendorservice.GetSetPrePaymentLines(AccessToken, formObject.getNGValue("accountcode"));
+
+                        break;
+
+                    case "site":
+                        String site = formObject.getNGValue("site");
+                        if (site.equalsIgnoreCase("104")) {
+                            System.out.println("inside site: 104");
+                            formObject.setEnabled("state", true);
+                            formObject.setNGValue("state", "--Select--");
+                            formObject.setNGValue("department", "2031");
+                            formObject.setNGValue("departmentdsc", "2031-Sales Accounts");
+                        } else {
+                            System.out.println("inside else");
+                            formObject.setEnabled("q_ledgerstate", false);
+                            Query = "select StateName from StateMaster where"
+                                    + " AxRecId = (select StateAxRecId from SiteStateLinking where "
+                                    + "businessunitaxrecid = (select AxRecId from SiteMaster where SiteCode = '" + site + "'))";
+                            System.out.println("Quer is " + Query);
+                            result = formObject.getDataFromDataSource(Query);
+                            if (result.size() > 0) {
+                                formObject.setNGValue("state", result.get(0).get(0));
+                            }
+                        }
+                        break;
                 }
                 break;
 
@@ -108,8 +137,8 @@ public class Initiator implements FormListener {
                         break;
 
                     case "Pick_department":
-                        Query = "select description from department order by description asc";
-                        objPicklistListenerHandler.openPickList("department", "Description", "Department Master", 35, 35, Query);
+                        Query = "select value,description from department order by description asc";
+                        objPicklistListenerHandler.openPickList("departmentdsc", "Code,Description", "Department Master", 35, 35, Query);
                         break;
 
                     case "Pick_account":
@@ -186,24 +215,25 @@ public class Initiator implements FormListener {
             formObject.addComboItem("site", result.get(i).get(0), result.get(i).get(0));
         }
 
-//        formObject.clear("department");
-//        formObject.addComboItem("department", "All", "All");
-//        Query = "select description from department order by description asc";
-//        System.out.println("Query is " + Query);
-//        result = formObject.getDataFromDataSource(Query);
-//        for (int i = 0; i < result.size(); i++) {
-//            formObject.addComboItem("department", result.get(i).get(0), result.get(i).get(0));
-//        }
-
         formObject.clear("filestatus");
         if (!formObject.getNGValue("previousactivity").equalsIgnoreCase("Approver")
-                && !formObject.getNGValue("previousactivity").equalsIgnoreCase("Accounts")) {
+                && (!formObject.getNGValue("previousactivity").equalsIgnoreCase("AccountsMaker")
+                || !formObject.getNGValue("previousactivity").equalsIgnoreCase("AccountsChecker"))) {
             formObject.addComboItem("filestatus", "Initiate", "Initiate");
-            formObject.addComboItem("filestatus", "Discard", "Discard");
         } else {
             formObject.addComboItem("filestatus", "Hold", "Hold");
             formObject.addComboItem("filestatus", "Query Cleared", "Query Cleared");
-            formObject.addComboItem("filestatus", "Discard", "Discard");
+        }
+        formObject.addComboItem("filestatus", "Discard", "Discard");
+
+        System.out.println("InvAmountEx :" + formObject.getNGValue("invoiceamountex"));
+        if (formObject.getNGValue("invoiceamount").equals("")) {
+            formObject.setNGValue("invoiceamount", formObject.getNGValue("invoiceamountex"));
+        }
+
+        System.out.println("InvDateEx :" + formObject.getNGValue("invoicedateex"));
+        if (formObject.getNGValue("invoicedate").equals("")) {
+            formObject.setNGValue("invoicedate", formObject.getNGValue("invoicedateex"));
         }
 
         formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
@@ -240,6 +270,7 @@ public class Initiator implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objCalculations = new Calculations();
         objGeneral = new General();
+        String levelflag = formObject.getNGValue("levelflag");
 
         objGeneral.checkDuplicateInvoice(
                 formObject.getNGValue("accountcode"),
@@ -248,91 +279,23 @@ public class Initiator implements FormListener {
                 processInstanceId
         );
 
-//        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag")) + 1;
-//        Query = "select ApproverCode from ServiceNonPOApproverMaster where "
-//                + "Head ='" + formObject.getNGValue("proctype") + "' "
-//                + "and ApproverLevel='" + levelflag + "' "
-//                + "and State ='" + formObject.getNGValue("state") + "'";
-//        System.out.println("Query:" + Query);
-//        result = formObject.getDataFromDataSource(Query);
-//        System.out.println("result" + result);
-//        if (!result.get(0).get(0).equalsIgnoreCase("")) {
-//            System.out.println("inside first if");
-//            formObject.setNGValue("nextactivity", "Approver");
-//            formObject.setNGValue("assignto", result.get(0).get(0));
-//            formObject.setNGValue("levelflag", levelflag);
-//        } else {
-//            System.out.println("inside first else");
-//            Query = "select ApproverLevel, ApproverCode from ServiceNonPOApproverMaster where  "
-//                    + "head = '" + formObject.getNGValue("proctype") + "' "
-//                    + "and state = '" + formObject.getNGValue("state") + "' "
-//                    + "and approverlevel in ('Maker', 'Checker')";
-//            System.out.println("query  for level is " + Query);
-//            result = formObject.getDataFromDataSource(Query);
-//            System.out.println("result is " + result);
-//            if (!result.get(0).get(1).equalsIgnoreCase("")) {
-//                System.out.println("inside second if");
-//                if (result.get(0).get(0).equalsIgnoreCase("Maker")) {
-//                    System.out.println("inside maker");
-//                    formObject.setNGValue("levelflag", "Maker");
-//                } else if (result.get(0).get(0).equalsIgnoreCase("Checker")) {
-//                    System.out.println("inside checker");
-//                    formObject.setNGValue("levelflag", "Checker");
-//                }
-//                formObject.setNGValue("assignto", result.get(0).get(1));
-//                formObject.setNGValue("nextactivity", "Accounts");
-//            } else {
-//                System.out.println("inside second else ");
-//                //formObject.setNGValue("nextactivity", "SchedularAccount");
-//                throw new ValidatorException(new FacesMessage("There is no Approver/Maker/Checker for this category"));
-//            }
-//
-//        }
-//        formObject.setNGValue("previousactivity", activityName);
-        String sQuery = "", nextactivity = "", strLevelFlag = "";
-        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag"));
-        Query = "select count(*) from ServiceNonPOApproverMaster "
-                + "where head = '" + formObject.getNGValue("proctype") + "' "
-                + "and site = '" + formObject.getNGValue("site") + "' "
-                + "and state = '" + formObject.getNGValue("state") + "' "
-                + "and department = '" + formObject.getNGValue("department") + "' ";
-        sQuery = Query + "and ApproverLevel = '" + levelflag + "' ";
-        System.out.println("Query: " + sQuery);
-        result = formObject.getDataFromDataSource(sQuery);
-        System.out.println("result is" + result);
-        if (result.get(0).get(0).equalsIgnoreCase("0")) {
-            sQuery = "";
-            sQuery = Query + "and ApproverLevel = 'Maker'";
-            System.out.println("Query: " + sQuery);
-            result = formObject.getDataFromDataSource(sQuery);
-            if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                sQuery = "";
-                sQuery = Query + "and ApproverLevel = 'Checker'";
-                System.out.println("Query: " + sQuery);
-                result = formObject.getDataFromDataSource(sQuery);
-                if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                    throw new ValidatorException(new FacesMessage("No Approver and Account Maker/Checker defined in the DoA."));
-                } else {
-                    strLevelFlag = "Checker";
-                    nextactivity = "Accounts";
-                }
-            } else {
-                strLevelFlag = "Maker";
-                nextactivity = "Accounts";
-            }
-        } else {
-            strLevelFlag = String.valueOf(levelflag);
-            nextactivity = "Approver";
-        }
-        formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
+        objGeneral.checkServiceNonPoDoAUser(levelflag, "");
         formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
         formObject.setNGValue("FilterDoA_Head", formObject.getNGValue("proctype"));
         formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
         formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
-        formObject.setNGValue("levelflag", strLevelFlag);
-        formObject.setNGValue("nextactivity", nextactivity);
+
+//        formObject.setNGValue("nextactivity", nextactivity);
         formObject.setNGValue("previousactivity", activityName);
-        objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text51"), "q_transactionhistory");
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                formObject.getNGValue("filestatus"),
+                "",
+                formObject.getNGValue("Text51"),
+                "q_transactionhistory"
+        );
+
     }
 
     @Override

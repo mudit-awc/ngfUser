@@ -115,11 +115,13 @@ public class CallCLMSService {
                                 append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(j).optString("Quantity")).
                                 append("</SubItem><SubItem>").append(unitprice_poline).
                                 append("</SubItem><SubItem>").append(calculatedvalues[1]).
+                                append("</SubItem><SubItem>").append("").
+                                append("</SubItem><SubItem>").append("").
                                 append("</SubItem><SubItem>").append(calculatedvalues[3]).
                                 append("</SubItem><SubItem>").append(calculatedvalues[2]).
                                 append("</SubItem><SubItem>").append(calculatedvalues[0]).
                                 append("</SubItem><SubItem>").append("").
-                                append("</SubItem><SubItem>").append("").
+                                append("</SubItem><SubItem>").append(formObject.getNGValue("ponumber")).
                                 append("</SubItem></ListItem>").toString();
                     }
                 }

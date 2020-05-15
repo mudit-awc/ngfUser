@@ -25,7 +25,7 @@ public class OutwardFreight implements IFormListenerFactory {
 			return new Initiator();
 		} else if (sActivityName.equalsIgnoreCase("Approver")) {
 			return new Approver();
-		} else if (sActivityName.equalsIgnoreCase("Accounts")) {
+		} else if (sActivityName.equalsIgnoreCase("Accounts")|| sActivityName.equalsIgnoreCase("AXSyncException")) {
 			return new Accounts();
 		}
 		return null;

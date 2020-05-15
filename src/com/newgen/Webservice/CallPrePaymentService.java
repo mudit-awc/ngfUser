@@ -11,6 +11,7 @@ import com.newgen.common.ReadProperty;
 import com.newgen.omniforms.FormConfig;
 import com.newgen.omniforms.FormReference;
 import com.newgen.omniforms.context.FormContext;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,6 +37,8 @@ public class CallPrePaymentService {
     private String outputJSON;
     private String Query;
     private String pid;
+    ArrayList<String> rem_newgen;
+
 
     public void GetSetPrePaymentLines(String AccessToken, String PONumber, String POType, String processInstanceId) {
         formObject = FormContext.getCurrentInstance().getFormReference();
@@ -134,13 +137,14 @@ public class CallPrePaymentService {
                     String Po_number = objJSONArray_POList.getJSONObject(i).optString("purchId");
                     String Invoice_no = objJSONArray_invoiceLineList.getJSONObject(j).optString("invoiceID");
                     Query = "select remainingamountnewgen from cmplx_prepayment where purchaseorderno='" + Po_number + "' and prepaymentinvoicenumber = '" + Invoice_no + "' and pinstanceid in (select top 1 processid from ext_servicepoinvoice where nextactivity = 'SchedulerAccount' and postingsyncstatus != 'Success' order by processid desc);                                                  ";
-                    System.out.println("Query prepayment: "+Query);
+                    System.out.println("Query prepayment: " + Query);
                     result = formObject.getDataFromDataSource(Query);
-                    System.out.println("result: "+result);
-                    if(result.size()>0){
-                         remaining_amount_newgen = result.get(0).get(0);
-                    }
-                    else{
+                    System.out.println("result: " + result);
+                    if (result.size() > 0) {
+                        remaining_amount_newgen = result.get(0).get(0);
+                        rem_newgen = new ArrayList<>();
+                        rem_newgen.add(remaining_amount_newgen +"#"+ Po_number +"#"+ Invoice_no);
+                    } else {
                         remaining_amount_newgen = objJSONArray_invoiceLineList.getJSONObject(j).optString("settleAmount");
                     }
                     invoiceLineListXML = (new StringBuilder()).append(invoiceLineListXML).
@@ -161,10 +165,20 @@ public class CallPrePaymentService {
                 Query = "select count(*) from cmplx_prepayment where pinstanceid ='" + pid + "'";
                 result = formObject.getDataFromDataSource(Query);
                 if ("0".equalsIgnoreCase(result.get(0).get(0))) {
-                            System.out.println("adding line");
-                            formObject.clear("q_prepayment");
-                            formObject.NGAddListItem("q_prepayment", invoiceLineListXML);
-                            formObject.RaiseEvent("WFSave");
+                    System.out.println("adding line");
+                    formObject.clear("q_prepayment");
+                    formObject.NGAddListItem("q_prepayment", invoiceLineListXML);
+                    formObject.RaiseEvent("WFSave");
+                } else {
+                    for (int k = 0; k < rem_newgen.size();k++) {
+                        try{
+                        Query = "update cmplx_prepayment set reremainingamountnewgen = '"+rem_newgen.get(k).split("#")[0]+"' where  purchaseorderno='" + rem_newgen.get(k).split("#")[1] + "' and prepaymentinvoicenumber = '" + rem_newgen.get(k).split("#")[2] + "' andpinstanceid ='" + pid + "'";
+                        formObject.saveDataIntoDataSource(Query);
+                        }catch(Exception e){
+                            e.printStackTrace();
+                            System.out.println("Exception occures!!: "+e.getMessage());
+                        }
+                        }
                 }
             } catch (Exception e) {
                 System.out.println("Exception in adding line item :" + e);

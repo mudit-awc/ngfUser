@@ -15,6 +15,7 @@ import com.newgen.omniforms.event.FormEvent;
 import com.newgen.omniforms.listener.FormListener;
 import java.util.HashMap;
 import java.util.List;
+import javax.faces.application.FacesMessage;
 import javax.faces.validator.ValidatorException;
 
 /**
@@ -176,14 +177,14 @@ public class Approver implements FormListener {
             for (int i = 0; i < result.size(); i++) {
                 formObject.addComboItem("state", result.get(i).get(0), result.get(i).get(0));
             }
-            
+
             Query = "select HeadName from ServicePoHeadMaster order by HeadName asc";
-        System.out.println("Query is " + Query);
-        result = formObject.getDataFromDataSource(Query);
-        System.out.println("result is"+result);
-        for (int i = 0; i < result.size(); i++) {
-            formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
-        }
+            System.out.println("Query is " + Query);
+            result = formObject.getDataFromDataSource(Query);
+            System.out.println("result is" + result);
+            for (int i = 0; i < result.size(); i++) {
+                formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -218,59 +219,25 @@ public class Approver implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
-        String levelflag_ = formObject.getNGValue("levelflag");
-        int levelflag = Integer.parseInt(levelflag_) + 1;
-        try {
-            if (formObject.getNGValue("filestatus").equalsIgnoreCase("Approved")) {
-                System.out.println("inside approved");
-
-                System.out.println("State is" + formObject.getNGValue("state"));
-                System.out.println("level flag is " + levelflag);
-                Query = "select ApproverCode from ServicePOApproverMaster where Head = '" + formObject.getNGValue("proctype").replace(",", "%") + "' "
-                        + "and ApproverLevel='" + levelflag + "'"
-                        + "and State ='" + formObject.getNGValue("state") + "' "
-                        + "and approvercode is not null "
-                        + "and approvercode <> ''";
-                System.out.println("Query:" + Query);
-                result = formObject.getDataFromDataSource(Query);
-                System.out.println("result" + result);
-                if (result.size() > 0) {
-                    formObject.setNGValue("nextactivity", "Approver");
-                    formObject.setNGValue("assignto", result.get(0).get(0));
-                    formObject.setNGValue("levelflag", levelflag);
-                } else {
-                    System.out.println("inside else of approver");
-                    //Query = "select ApproverLevel, ApproverCode from ServiceNonPOApproverMaster where head = '" + formObject.getNGValue("proctype") + "'  and state = '" + formObject.getNGValue("state") + "'  ";
-                    Query = "select ApproverLevel, ApproverCode from ServicePOApproverMaster where  "
-                            + "head = '" + formObject.getNGValue("proctype").replace(",", "%") + "' "
-                            + "and state = '" + formObject.getNGValue("state") + "' "
-                            + "and approverlevel in ('Maker', 'Checker')";
-                    System.out.println("query  for level is " + Query);
-                    result = formObject.getDataFromDataSource(Query);
-                    if (result.size() > 0) {
-                        if (result.get(0).get(0).equalsIgnoreCase("Maker")) {
-                            formObject.setNGValue("levelflag", "Maker");
-                        } else if (result.get(levelflag).get(0).equalsIgnoreCase("Checker")) {
-                            formObject.setNGValue("levelflag", "Checker");
-                        }
-                        formObject.setNGValue("assignto", result.get(0).get(1));
-                        formObject.setNGValue("nextactivity", "Accounts");
-                    } else {
-                        formObject.setNGValue("nextactivity", "SchedulerAccount");
-                        //formObject.setNGValue("assignto", "NA");
-                    }
-                }
-            } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Query Raised")) {
-                formObject.setNGValue("nextactivity", "Initiator");
-                formObject.setNGValue("assignto", formObject.getNGValue("CreatedByName"));
-            }
-            formObject.setNGValue("previousactivity", activityName);
-            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
-            System.out.println("history added");
-        } catch (Exception e) {
-            e.printStackTrace();
+        String filestatus = formObject.getNGValue("filestatus");
+        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag"));
+        if (filestatus.equalsIgnoreCase("Approved")) {
+            levelflag = levelflag + 1;
+            objGeneral.checkServicePoDoAUser(String.valueOf(levelflag), "Approver");
+        } else if (filestatus.equalsIgnoreCase("Reject")) {
+            levelflag = levelflag - 1;
+            formObject.setNGValue("FilterDoA_ApproverLevel", levelflag);
+            formObject.setNGValue("levelflag", levelflag);
         }
-
+        formObject.setNGValue("previousactivity", activityName);
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                filestatus,
+                "",
+                formObject.getNGValue("Text15"),
+                "q_transactionhistory"
+        );
     }
 
     @Override

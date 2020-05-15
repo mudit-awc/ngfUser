@@ -12,6 +12,7 @@ import com.newgen.omniforms.FormReference;
 import com.newgen.omniforms.component.ListView;
 import com.newgen.omniforms.context.FormContext;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.faces.application.FacesMessage;
@@ -86,7 +87,7 @@ public class CallPurchaseOrderService {
                 addToSypplyInvoice();
             }
             if (ProcessName.equalsIgnoreCase("Service")) {
-                webserviceStatus = parseServicePoOutputJSON(outputJSON);
+                webserviceStatus = parseServicePoOutputJSON(POType, outputJSON);
             }
 
             if (ProcessName.equalsIgnoreCase("RABill")) {
@@ -124,7 +125,7 @@ public class CallPurchaseOrderService {
             formObject.setNGValue("loadingcity", objJSONObject.optString("LoadingCity"));
             formObject.setNGValue("site", objJSONObject.optString("Site"));
             formObject.setNGValue("gi_purchasestatus", objJSONObject.optString("PurchStatus"));
-
+            formObject.setNGValue("department", objJSONObject.optString("Department"));
             String formatDate = objJSONObject.optString("AccountingDate");
             String podate = formatDate.replace('-', '/');
             System.out.println("after replace date : " + podate);
@@ -280,7 +281,7 @@ public class CallPurchaseOrderService {
         }
     }
 
-    public String parseServicePoOutputJSON(String content) throws JSONException {
+    public String parseServicePoOutputJSON(String POType, String content) throws JSONException {
         formObject = FormContext.getCurrentInstance().getFormReference();
 
         String POLineContractXML = "";
@@ -296,13 +297,15 @@ public class CallPurchaseOrderService {
         System.out.println("IsSuccess : " + IsSuccess);
         System.out.println("ErrorMessage :ErrorMessage :call purchase order : " + ErrorMessage);
         if (IsSuccess.equalsIgnoreCase("true")) {
-            System.out.println("at the correct position");
+            System.out.println("at the correct position POType :" + POType);
             //Set Multiple PO's
-            String multiplepolistview = "<ListItem>"
-                    + "<SubItem>" + formObject.getNGValue("ponumber") + "</SubItem>"
-                    + "<SubItem>" + objJSONObject.optString("AccountingDate") + "</SubItem>"
-                    + "</ListItem>";
-            formObject.NGAddListItem("q_multiplepo", multiplepolistview);
+            if (POType.equalsIgnoreCase("Service")) {
+                String multiplepolistview = "<ListItem>"
+                        + "<SubItem>" + formObject.getNGValue("ponumber") + "</SubItem>"
+                        + "<SubItem>" + objJSONObject.optString("AccountingDate") + "</SubItem>"
+                        + "</ListItem>";
+                formObject.NGAddListItem("q_multiplepo", multiplepolistview);
+            }
 
             //Set Header Details
             formObject.setNGValue("currency", objJSONObject.optString("Currency"));
@@ -311,6 +314,7 @@ public class CallPurchaseOrderService {
             formObject.setNGValue("loadingcity", objJSONObject.optString("LoadingCity"));
             formObject.setNGValue("businessunit", objJSONObject.optString("BusinessUnit"));
             formObject.setNGValue("site", objJSONObject.optString("Site"));
+            formObject.setNGValue("department", objJSONObject.optString("Department"));
             formObject.setNGValue("deliveryterm", objJSONObject.optString("DeliveryTerm"));
             formObject.setNGValue("paymentterm", objJSONObject.optString("PaymentTermId"));
             formObject.setNGValue("msmestatus", objJSONObject.optString("MSMEStatus"));
@@ -320,6 +324,17 @@ public class CallPurchaseOrderService {
                 formObject.setNGValue("compositescheme", "Yes");
             } else if (compositionScheme.equalsIgnoreCase("0")) {
                 formObject.setNGValue("compositescheme", "No");
+            }
+
+            String Query = "select gta from VendorMaster where VendorCode = '" + formObject.getNGValue("suppliercode") + "'";
+            System.out.println("Query : " + Query);
+            List<List<String>> result = formObject.getDataFromDataSource(Query);
+            if (result.size() > 0) {
+                if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                    formObject.setNGValue("gtavendor", "False");
+                } else {
+                    formObject.setNGValue("gtavendor", "True");
+                }
             }
 
             //Set Line Details
@@ -417,7 +432,7 @@ public class CallPurchaseOrderService {
                             append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("ItemNumber")).
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("calculatedAmount")).
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("currency")).
-                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("assesableValue")).
+                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("assesableValue").toUpperCase()).
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("categoryENUM")).
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("categoryDescription")).
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("chargesValue")).
@@ -447,7 +462,7 @@ public class CallPurchaseOrderService {
         String POLineContractXML = "";
         String POLineChargesXML = "";
         JSONObject objJSON = new JSONObject(content);
-          JSONObject objJSONObject =objJSON.getJSONObject("d");
+        JSONObject objJSONObject = objJSON.getJSONObject("d");
 
         //Check webservice IsSuccess status
         String IsSuccess = objJSONObject.optString("IsSucceess");
@@ -673,6 +688,8 @@ public class CallPurchaseOrderService {
                         append("</SubItem><SubItem>").append(formObject.getNGValue("q_gateentrylines", i, 4)). // Quantity
                         append("</SubItem><SubItem>").append(unitprice_poline). // Rate
                         append("</SubItem><SubItem>").append(calculatedvalues[1]). // line total 
+                        append("</SubItem><SubItem>").append(discount_percent). // discount_percent
+                        append("</SubItem><SubItem>").append(discountamount). // discountamount
                         append("</SubItem><SubItem>").append(calculatedvalues[3]). // tax % 
                         append("</SubItem><SubItem>").append(calculatedvalues[2]). // tax amount
                         append("</SubItem><SubItem>").append(calculatedvalues[0]). // total amount

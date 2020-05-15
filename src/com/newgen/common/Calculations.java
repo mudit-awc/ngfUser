@@ -10,7 +10,9 @@ import com.newgen.omniforms.FormReference;
 import com.newgen.omniforms.context.FormContext;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -22,20 +24,24 @@ public class Calculations implements Serializable {
     FormReference formObject = null;
     FormConfig formConfig = null;
     List<List<String>> result;
+    String Query;
 
     public String calculateLineTotalWithTax(String Quantity, String Rate, String TaxGroup) {
         System.out.println("Inside calculateLineTotalWithTax");
         formObject = FormContext.getCurrentInstance().getFormReference();
-        String percentage = "";
-        if (TaxGroup.equalsIgnoreCase("")) {
+        String percentage = "0";
+       /* if (TaxGroup.equalsIgnoreCase("")) {
             percentage = "0";
         } else {
             String Query = "select TaxPercentage from ItemTaxgroupMaster where TAXITEMGROUP='" + TaxGroup + "'";
             result = formObject.getDataFromDataSource(Query);
             System.out.println("result: " + result);
-            percentage = result.get(0).get(0);
-        }
-
+            if (result.size() > 0) {
+                percentage = result.get(0).get(0);
+            } else {
+                percentage = "0";
+            }
+        } */
         String TotalTaxAmount = "", LineTotal = "", TaxAmount = "";
         BigDecimal bquantity = new BigDecimal(Quantity);
         BigDecimal bRate = new BigDecimal(Rate);
@@ -158,6 +164,100 @@ public class Calculations implements Serializable {
             formObject.setNGValue(newbaseamountId, baseamount);
             formObject.setNGValue(exchangerateId, "");
         }
+    }
+
+    public String calculateLowerTDS(String Amount, String TDS_Percent, String TDS_Group) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        System.out.println("Inside Lower_TDS");
+        String Updated_AdjustedTDSAmount = "", Update_TDS_Percent = "";
+        float Total_Amount, Limit, NewAdjusted_Origin_Amount, Adjusted_Origin_Amount = Float.parseFloat(Amount);
+        System.out.println("Adjusted Origin Amount: " + Adjusted_Origin_Amount);
+        try {
+            Date invoicedate = new SimpleDateFormat("dd/MM/yyyy").parse(formObject.getNGValue("invoicedate"));
+            System.out.println("invoice date after: " + invoicedate);
+            Query = "Select From_Date, To_Date from ServicePolowerTDSMaster where VendorCode='" + formObject.getNGValue("suppliercode") + "'";
+            System.out.println("Query: " + Query);
+            result = formObject.getDataFromDataSource(Query);
+            System.out.println("result of Query: " + result);
+            if (result.size() > 0) {
+                Date to_date = new SimpleDateFormat("yyyy-MM-dd").parse(result.get(0).get(1).substring(0, 10));
+                Date from_date = new SimpleDateFormat("yyyy-MM-dd").parse(result.get(0).get(0).substring(0, 10));
+                if (invoicedate.compareTo(from_date) >= 0 && invoicedate.compareTo(to_date) <= 0) {
+                    Query = "select count(*) from ServicePolowerTDSMaster where VendorCode = '" + formObject.getNGValue("suppliercode") + "' and TDSCode = '" + TDS_Group + "'";
+                    System.out.println("Query: " + Query);
+                    result = formObject.getDataFromDataSource(Query);
+                    if (!("0".equalsIgnoreCase(result.get(0).get(0)))) {
+                        System.out.println("inside if statement of result1");
+                        Query = "Select Limit,Total_Amount,TDSPercentAfter, TaxPercent, Flag, From_Date, To_Date from ServicePolowerTDSMaster where VendorCode='" + formObject.getNGValue("suppliercode") + "'";
+                        System.out.println("Query: " + Query);
+                        result = formObject.getDataFromDataSource(Query);
+                        System.out.println("result of Query: " + result);
+                        if (result.size() > 0) {
+                            Limit = Float.parseFloat(result.get(0).get(0));
+                            System.out.println("Limit: " + Limit);
+                            if (result.get(0).get(1).equalsIgnoreCase("") || result.get(0).get(1).equalsIgnoreCase(" ")) {
+                                Total_Amount = 0.0f;
+                            } else {
+                                Total_Amount = Float.parseFloat(result.get(0).get(1));
+                            }
+                            System.out.println("Total Amount: " + Total_Amount);
+                            NewAdjusted_Origin_Amount = Total_Amount + Adjusted_Origin_Amount;
+                            System.out.println("NewAdjusted Origin Data: " + NewAdjusted_Origin_Amount);
+                            if (result.get(0).get(4).equalsIgnoreCase("F")) {
+                                if (NewAdjusted_Origin_Amount > Limit) {
+                                    System.out.println("Inside first if");
+                                    float OverLimitAmount = NewAdjusted_Origin_Amount - Limit;
+                                    float LimitedAdjustedAmount = Limit - Total_Amount;
+                                    float AdjustedTDSAmount_1 = Float.parseFloat(calculatePercentAmount(String.valueOf(OverLimitAmount), result.get(0).get(2)));
+                                    float AdjustedTDSAmount_2 = Float.parseFloat(calculatePercentAmount(String.valueOf(LimitedAdjustedAmount), result.get(0).get(3)));
+                                    Updated_AdjustedTDSAmount = String.valueOf(AdjustedTDSAmount_1 + AdjustedTDSAmount_2);
+                                    Update_TDS_Percent = result.get(0).get(2);
+                                    Query = "update ServicePolowerTDSMaster set Total_Amount = '" + NewAdjusted_Origin_Amount + "', Flag = 'T' where PanNumber = 'as'";
+                                    System.out.println("Query1: " + Query);
+                                    formObject.saveDataIntoDataSource(Query);
+
+                                } else {
+                                    System.out.println("inside first else if");
+                                    Updated_AdjustedTDSAmount = calculatePercentAmount(String.valueOf(Adjusted_Origin_Amount), result.get(0).get(3));
+                                    Update_TDS_Percent = TDS_Percent;
+                                    Query = "update ServicePolowerTDSMaster set Total_Amount = '" + NewAdjusted_Origin_Amount + "'where PanNumber = 'as'";
+                                    System.out.println("Query2: " + Query);
+                                    formObject.saveDataIntoDataSource(Query);
+                                }
+                            } else {
+                                System.out.println("inside first else if");
+                                Updated_AdjustedTDSAmount = calculatePercentAmount(String.valueOf(Adjusted_Origin_Amount), result.get(0).get(3));
+                                Update_TDS_Percent = result.get(0).get(2);
+                                Query = "update ServicePolowerTDSMaster set Total_Amount = '" + NewAdjusted_Origin_Amount + "'where PanNumber = 'as'";
+                                System.out.println("Query2: " + Query);
+                                formObject.saveDataIntoDataSource(Query);
+
+                            }
+                        }
+//                    else {
+//                        System.out.println("inside else of result ");
+//                        Updated_AdjustedTDSAmount = calculatePercentAmount(String.valueOf(Adjusted_Origin_Amount), TDS_Percent);
+//                        Query = "update ServicePolowerTDSMaster set Total_Amount = '" + NewAdjusted_Origin_Amount + "'where PanNumber = 'as'";
+//                        System.out.println("Query2: " + Query);
+//                        formObject.saveDataIntoDataSource(Query);
+//                    }
+                    } else {
+                        System.out.println("inside else of result ");
+                        Update_TDS_Percent = TDS_Percent;
+                        Updated_AdjustedTDSAmount = calculatePercentAmount(String.valueOf(Adjusted_Origin_Amount), TDS_Percent);
+                    }
+                }
+            } else {
+                System.out.println("inside else of result ");
+                Update_TDS_Percent = TDS_Percent;
+                Updated_AdjustedTDSAmount = calculatePercentAmount(String.valueOf(Adjusted_Origin_Amount), TDS_Percent);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("LOwerTDS Result: Updated_AdjustedTDSAmount + \"#\" + Update_TDS_Percent");
+        return Updated_AdjustedTDSAmount + "#" + Update_TDS_Percent;
     }
 
 }

@@ -107,11 +107,14 @@ public class Approver implements FormListener {
         formObject.setSheetVisible("Tab1", 1, false);
         formObject.setSheetVisible("Tab1", 2, false);
         formObject.setSheetVisible("Tab1", 3, false);
-        formObject.setNGValue("filestatus", "");
         formObject.clear("filestatus");
-        formObject.addComboItem("filestatus", "Approved", "Approved");
-        formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
-        // formObject.addComboItem("filestatus", "Discarded", "Discarded");
+        formObject.setNGValue("filestatus", "");
+        formObject.addComboItem("filestatus", "Approve", "Approve");
+        if (!formObject.getNGValue("levelflag").equals("1")) {
+            formObject.addComboItem("filestatus", "Reject", "Reject");
+        }
+        formObject.addComboItem("filestatus", "Query Raise", "Query Raise");
+        formObject.addComboItem("filestatus", "Discard", "Discard");
 
         Query = "select HeadName from ServiceNonPoHeadMaster order by HeadName asc";
         System.out.println("Query is " + Query);
@@ -128,15 +131,6 @@ public class Approver implements FormListener {
         for (int i = 0; i < result.size(); i++) {
             formObject.addComboItem("site", result.get(i).get(0), result.get(i).get(0));
         }
-
-//        formObject.addComboItem("department", "All", "All");
-//        Query = "select description from department order by description asc";
-//        System.out.println("Query is " + Query);
-//        result = formObject.getDataFromDataSource(Query);
-//        System.out.println("result is "+result);
-//        for (int i = 0; i < result.size(); i++) {
-//            formObject.addComboItem("department", result.get(i).get(0), result.get(i).get(0));
-//        }
     }
 
     @Override
@@ -164,94 +158,26 @@ public class Approver implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objGeneral = new General();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
-
-//        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag")) + 1;
-//        String filestatus = formObject.getNGValue("filestatus");
-//        if (filestatus.equalsIgnoreCase("Approved")) {
-//            Query = "select ApproverCode from ServiceNonPOApproverMaster where Head ='" + formObject.getNGValue("proctype") + "' "
-//                    + "and ApproverLevel='" + levelflag + "' "
-//                    + "and State ='" + formObject.getNGValue("state") + "'";
-//            System.out.println("level flag value at approver" + levelflag);
-//
-//            System.out.println("---" + formObject.getNGValue("levelflag"));
-//            System.out.println("Query:" + Query);
-//            result = formObject.getDataFromDataSource(Query);
-//            System.out.println("inside approver ");
-//            System.out.println("result" + result);
-//            if (result.size() > 0) {
-//                formObject.setNGValue("nextactivity", "Approver");
-//                formObject.setNGValue("assignto", result.get(0).get(0));
-//                formObject.setNGValue("levelflag", levelflag);
-//            } else {
-//                System.out.println("inside else of approver");
-//                //Query = "select ApproverLevel, ApproverCode from ServiceNonPOApproverMaster where head = '" + formObject.getNGValue("proctype") + "'  and state = '" + formObject.getNGValue("state") + "'  ";
-//                Query = "select ApproverLevel, ApproverCode from ServiceNonPOApproverMaster where  "
-//                        + "head = '" + formObject.getNGValue("proctype") + "' "
-//                        + "and state = '" + formObject.getNGValue("state") + "' "
-//                        + "and approverlevel in ('Maker', 'Checker')";
-//                System.out.println("query  for level is " + Query);
-//                result = formObject.getDataFromDataSource(Query);
-//                if (result.size() > 0) {
-//                    if (result.get(0).get(0).equalsIgnoreCase("Maker")) {
-//                        formObject.setNGValue("levelflag", "Maker");
-//                    } else if (result.get(levelflag).get(0).equalsIgnoreCase("Checker")) {
-//                        formObject.setNGValue("levelflag", "Checker");
-//                    }
-//                    formObject.setNGValue("assignto", result.get(0).get(1));
-//                    formObject.setNGValue("nextactivity", "Accounts");
-//                } else {
-//                    formObject.setNGValue("nextactivity", "SchedularAccount");
-//                    //formObject.setNGValue("assignto", "NA");
-//                }
-//            }
-//        } else if (filestatus.equalsIgnoreCase("Query Raised")) {
-//            formObject.setNGValue("nextactivity", "Initiator");
-//            formObject.setNGValue("assignto", formObject.getNGValue("CreatedByName"));
-//        }
-        String sQuery = "", nextactivity = "", strLevelFlag = "";
         String filestatus = formObject.getNGValue("filestatus");
-        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag")) + 1;
-        if (filestatus.equalsIgnoreCase("Approved")) {
-            Query = "select count(*) from ServiceNonPOApproverMaster "
-                    + "where head = '" + formObject.getNGValue("proctype") + "' "
-                    + "and site = '" + formObject.getNGValue("site") + "' "
-                    + "and state = '" + formObject.getNGValue("state") + "' "
-                    + "and department = '" + formObject.getNGValue("department") + "' ";
-            sQuery = Query + "and ApproverLevel = '" + levelflag + "' ";
-            System.out.println("Query: " + sQuery);
-            result = formObject.getDataFromDataSource(sQuery);
-            if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                sQuery = "";
-                sQuery = Query + "and ApproverLevel = 'Maker'";
-                System.out.println("Query: " + sQuery);
-                result = formObject.getDataFromDataSource(sQuery);
-                if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                    sQuery = "";
-                    sQuery = Query + "and ApproverLevel = 'Checker'";
-                    System.out.println("Query: " + sQuery);
-                    result = formObject.getDataFromDataSource(sQuery);
-                    if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                        throw new ValidatorException(new FacesMessage("No Approver and Account Maker/Checker defined in the DoA."));
-                    } else {
-                        strLevelFlag = "Checker";
-                        nextactivity = "Accounts";
-                    }
-                } else {
-                    strLevelFlag = "Maker";
-                    nextactivity = "Accounts";
-                }
-            } else {
-                strLevelFlag = String.valueOf(levelflag);
-                nextactivity = "Approver";
-            }
-        } else if (filestatus.equalsIgnoreCase("Query Raised")) {
-            nextactivity = "Initiator";
+        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag"));
+        if (filestatus.equalsIgnoreCase("Approve")) {
+            levelflag = levelflag + 1;
+            objGeneral.checkServiceNonPoDoAUser(String.valueOf(levelflag), "Approver");
+        } else if (filestatus.equalsIgnoreCase("Reject")) {
+            levelflag = levelflag - 1;
+            formObject.setNGValue("FilterDoA_ApproverLevel", levelflag);
+            formObject.setNGValue("levelflag", levelflag);
         }
-        formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
-        formObject.setNGValue("levelflag", strLevelFlag);
-        formObject.setNGValue("nextactivity", nextactivity);
+//        formObject.setNGValue("nextactivity", nextactivity);
         formObject.setNGValue("previousactivity", activityName);
-        objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text51"), "q_transactionhistory");
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                filestatus,
+                "",
+                formObject.getNGValue("Text51"),
+                "q_transactionhistory"
+        );
     }
 
     @Override

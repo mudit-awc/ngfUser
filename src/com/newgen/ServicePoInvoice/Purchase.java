@@ -6,6 +6,7 @@
 package com.newgen.ServicePoInvoice;
 
 import com.newgen.Webservice.CallCLMSService;
+import com.newgen.Webservice.CallPurchaseOrderService;
 import com.newgen.common.Calculations;
 import com.newgen.common.General;
 import com.newgen.omniforms.FormConfig;
@@ -17,10 +18,6 @@ import com.newgen.omniforms.context.FormContext;
 import com.newgen.omniforms.event.ComponentEvent;
 import com.newgen.omniforms.event.FormEvent;
 import com.newgen.omniforms.listener.FormListener;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import javax.faces.application.FacesMessage;
@@ -63,7 +60,23 @@ public class Purchase implements FormListener {
 
             case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
-
+                    case "Btn_refreshpodetails":
+                        System.out.println("Inside Refresh PO---");
+                        ListView ListViewq_othercharges = (ListView) formObject.getComponent("q_multiplepo");
+                        System.out.println("-->" + ListViewq_othercharges.getSelectedRowIndex());
+                        if (null == ListViewq_othercharges.getSelectedRowIndex()) {
+                            throw new ValidatorException(new FacesMessage("Kindly select the Purchase order number", ""));
+                        } else {
+                            int selectedRowIndex = ListViewq_othercharges.getSelectedRowIndex();
+                            formObject.clear("q_polinedetails");
+                            new CallPurchaseOrderService().GetSetPurchaseOrder(
+                                    "",
+                                    "ServiceRefresh",
+                                    formObject.getNGValue("q_multiplepo", selectedRowIndex, 0),
+                                    "Service"
+                            );
+                        }
+                        break;
                 }
                 break;
         }
@@ -113,12 +126,11 @@ public class Purchase implements FormListener {
         for (int i = 0; i < result.size(); i++) {
             formObject.addComboItem("state", result.get(i).get(0), result.get(i).get(0));
         }
-        
-        
+
         Query = "select HeadName from ServicePoHeadMaster order by HeadName asc";
         System.out.println("Query is " + Query);
         result = formObject.getDataFromDataSource(Query);
-        System.out.println("result is"+result);
+        System.out.println("result is" + result);
         for (int i = 0; i < result.size(); i++) {
             formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
         }

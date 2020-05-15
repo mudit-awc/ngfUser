@@ -122,7 +122,8 @@ public class Indexer implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         objGeneral = new General();
         String levelflag_ = formObject.getNGValue("levelflag");
-        int levelflag = Integer.parseInt(levelflag_) + 1;
+        int levelflag = Integer.parseInt(levelflag_);
+        System.out.println("Level Flag: "+levelflag);
         String state = formObject.getNGValue("state");
 
         Query = "select count(*) from ext_rabill ext, WFINSTRUMENTTABLE wf "
@@ -144,32 +145,48 @@ public class Indexer implements FormListener {
             if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
                 objGeneral.setException(userName, "Combo1", "Text69");
             } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Initiate")) {
-                Query = "select TOP 1 ApproverCode from RABillApproverMaster where Head = 'RABill' and ApproverLevel ='" + levelflag + "'and State ='" + state + "'";
-                System.out.println("Query:" + Query);
-                result = formObject.getDataFromDataSource(Query);
-                if (result.size() > 0) {
-                    formObject.setNGValue("nextactivity", "Approver");
-                    formObject.setNGValue("assignto", result.get(0).get(0));
-                    formObject.setNGValue("levelflag", levelflag);
-                } else {
-                    Query = "select ApproverLevel, ApproverCode from RABillApproverMaster where "
-                            + "head = 'RABill' and "
-                            + "state = '" + (formObject.getNGValue("state")) + "'"
-                            + " and approverlevel in ('Maker','Checker')";
-                    System.out.println("Query form Maker n checker is" + Query);
-                    result = formObject.getDataFromDataSource(Query);
-                    if (result.size() > 0) {
-                        if (result.get(0).get(0).equalsIgnoreCase("Maker")) {
-                            formObject.setNGValue("levelflag", "Maker");
-                        } else if (result.get(0).get(0).equalsIgnoreCase("Checker")) {
-                            formObject.setNGValue("levelflag", "Checker");
+                String sQuery = "", nextactivity = "", strLevelFlag = "";
+                Query = "select count(*) from RABillApproverMaster "
+                        + "where site = '" + formObject.getNGValue("site") + "' "
+                        + "and state = '" + formObject.getNGValue("state") + "' "
+                        + "and department = '" + formObject.getNGValue("department") + "' ";
+                sQuery = Query + "and ApproverLevel = '" + levelflag + "' ";
+                System.out.println("Query: " + sQuery);
+                result = formObject.getDataFromDataSource(sQuery);
+                System.out.println("result is" + result);
+                if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                    sQuery = "";
+                    sQuery = Query + "and ApproverLevel = 'Maker'";
+                    System.out.println("Query: " + sQuery);
+                    result = formObject.getDataFromDataSource(sQuery);
+                    if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                        sQuery = "";
+                        sQuery = Query + "and ApproverLevel = 'Checker'";
+                        System.out.println("Query: " + sQuery);
+                        result = formObject.getDataFromDataSource(sQuery);
+                        if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                            throw new ValidatorException(new FacesMessage("No Approver and Account Maker/Checker defined in the DoA."));
+                        } else {
+                            strLevelFlag = "Checker";
+                            nextactivity = "Accounts";
                         }
-                        formObject.setNGValue("assignto", result.get(0).get(1));
-                        formObject.setNGValue("nextactivity", "Accounts");
                     } else {
-                        formObject.setNGValue("nextactivity", "SchedulerAccount");
+                        strLevelFlag = "Maker";
+                        nextactivity = "Accounts";
                     }
+                } else {
+                    strLevelFlag = String.valueOf(levelflag);
+                    nextactivity = "Approver";
                 }
+                formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
+                formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
+                //     formObject.setNGValue("FilterDoA_Head", formObject.getNGValue("proctype"));
+                formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
+                formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
+                formObject.setNGValue("levelflag", strLevelFlag);
+                formObject.setNGValue("nextactivity", nextactivity);
+                formObject.setNGValue("previousactivity", activityName);
+
             }
             objAccountsGeneral.getsetRABILLSummary(processInstanceId);
             formObject.setNGValue("previousactivity", activityName);
@@ -568,8 +585,6 @@ public class Indexer implements FormListener {
                         System.out.println("inside Btn_Validate_Itemjournal");
                         String AccessToken_1 = new CallAccessTokenService().getAccessToken();
                         new CallGetStockDetailsService().GetSetStockDetails(AccessToken_1, processInstanceId);
-                        System.out.println("after");
-                        formObject.ExecuteExternalCommand("NGModifyRow", "q_raitemjournal");
                         break;
 
                     case "Pick_structurename":

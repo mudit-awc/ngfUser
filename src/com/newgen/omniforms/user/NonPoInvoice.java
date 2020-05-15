@@ -29,12 +29,13 @@ public class NonPoInvoice implements IFormListenerFactory {
         sActivityName = formConfig.getConfigElement("ActivityName");
         sProcessName = formConfig.getConfigElement("ProcessName");
         System.out.println("**********sActivityName :" + sActivityName);
-        if (sActivityName.equalsIgnoreCase("Initiator")||sActivityName.equalsIgnoreCase("Introduction")) {
+        if (sActivityName.equalsIgnoreCase("Initiator")) {
             System.out.println("Returning to NonPoInvoice Initiator");
             return new Initiator();
         } else if (sActivityName.equalsIgnoreCase("Approver")) {
             return new Approver();
-        } else if (sActivityName.equalsIgnoreCase("Accounts")
+        } else if (sActivityName.equalsIgnoreCase("AccountsMaker")
+                || sActivityName.equalsIgnoreCase("AccountsChecker")
                 || sActivityName.equalsIgnoreCase("AXSyncException")) {
             return new Accounts();
         }

@@ -111,7 +111,8 @@ public class CallGetFreightDetail {
 			System.out.println("objJSONArray_transportdetail.length() " + objJSONArray_transportdetail.length());
 
 			for (int j = 0; j < objJSONArray_transportdetail.length(); j++) {
-				Line_No = Integer.toString(j + 1);
+                            
+                           	Line_No = Integer.toString(j + 1);
 				Order_Type = objJSONArray_transportdetail.getJSONObject(j).optString("Order_Type");
 				OrderNumber = objJSONArray_transportdetail.getJSONObject(j).optString("OrderNumber");
 				Wcl_InvoiceNumber = objJSONArray_transportdetail.getJSONObject(j).optString("Wcl_InvoiceNumber");
@@ -148,11 +149,12 @@ public class CallGetFreightDetail {
 						+ "<SubItem>" + SourcewareHouseCode + "</SubItem>"
 						+ "<SubItem>" + DestinationWareHouseCode + "</SubItem>"
 						+ "<SubItem>" + Site + "</SubItem>"
-						+ "</ListItem>";
+                                                + "</ListItem>";
 				
 				try {
         				formObject.NGAddListItem("q_transportdetail", FreightDetailXML);
-
+                                        Query = "Update complex_transportdetail set Shoartage = '"+Shoartage+"' where procid ='"+processInstanceId+"' and Line_No = '"+Line_No+"'";
+                                        formObject.saveDataIntoDataSource(Query);
 				} catch (Exception e) {
 					System.out.println("Exception in freight line item :" + e);
 				}
@@ -199,16 +201,17 @@ public class CallGetFreightDetail {
                         
                         formObject.setNGValue("FromWareHouseName",sourcewarehousecode + "-" + objJSONObject.optString("FromWareHouseName"));
 			String processid=processInstanceId;
+                        String TotalFreight1 = formObject.getNGValue("TotalFreight");
 			System.out.println("Process ID:"+processid);
-			System.out.println("Total Frigth:"+TotalFreight);
-			Query = "select * from cmplx_ledgerlinedetails where pinstanceid = '"+processid+"'";
+			System.out.println("Total Frigth:"+TotalFreight1);
+			Query = "select count(*) from cmplx_ledgerlinedetails where pinstanceid = '"+processid+"'";
 			result = formObject.getDataFromDataSource(Query);
 			if(result.size() >0) {
-				Query = "update cmplx_ledgerlinedetails set amount = '"+TotalFreight+"' where pinstanceid = '"+processid+"'";
+				Query = "update cmplx_ledgerlinedetails set amount = '"+TotalFreight1+"' where pinstanceid = '"+processid+"'";
 				System.out.println("Insert Query:"+Query);
 				formObject.saveDataIntoDataSource(Query);
 			}else {
-				Query = "INSERT INTO cmplx_ledgerlinedetails (amount, pinstanceid) VALUES ('"+TotalFreight+"','"+processid+"')";
+				Query = "INSERT INTO cmplx_ledgerlinedetails (amount, pinstanceid) VALUES ('"+TotalFreight1+"','"+processid+"')";
 				System.out.println("Insert Query:"+Query);
 				formObject.saveDataIntoDataSource(Query);
 			}return IsSuccess;

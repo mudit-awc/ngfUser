@@ -9,7 +9,6 @@ import com.newgen.SupplyPoInvoices.AccountUser;
 import com.newgen.omniforms.context.FormContext;
 import com.newgen.omniforms.listener.FormListener;
 import com.newgen.SupplyPoInvoices.Initiator;
-import com.newgen.SupplyPoInvoices.MultipleGRNInvoicing;
 import com.newgen.SupplyPoInvoices.PurchaseUser;
 import com.newgen.SupplyPoInvoices.QualityUser;
 import com.newgen.SupplyPoInvoices.StoreUser;
@@ -33,18 +32,22 @@ public class SupplyPoInvoices implements IFormListenerFactory {
         if (sActivityName.equalsIgnoreCase("Introduction")
                 // || sActivityName.equalsIgnoreCase("ManualIntroduction")
                 || sActivityName.equalsIgnoreCase("Initiator")) {
-            System.out.println("Returning to SupplyPoInvoices Head");
             return new Initiator();
-        } else if (sActivityName.equalsIgnoreCase("StoreUser") || sActivityName.equalsIgnoreCase("AXStoreSyncException")) {
+        } else if (sActivityName.equalsIgnoreCase("StoreMaker")
+                || sActivityName.equalsIgnoreCase("StoreChecker")
+                || sActivityName.equalsIgnoreCase("AXStoreSyncException")) {
             return new StoreUser();
-        } else if (sActivityName.equalsIgnoreCase("QualityUser") || sActivityName.equalsIgnoreCase("AXQualitySyncException")) {
+        } else if (sActivityName.equalsIgnoreCase("QualityMaker")
+                || sActivityName.equalsIgnoreCase("QualityChecker")
+                || sActivityName.equalsIgnoreCase("AXQualitySyncException")) {
             return new QualityUser();
         } else if (sActivityName.equalsIgnoreCase("PurchaseUser")) {
             return new PurchaseUser();
-        } else if (sActivityName.equalsIgnoreCase("AccountsUser")) {
+        } else if (sActivityName.equalsIgnoreCase("AccountsMaker")
+                || sActivityName.equalsIgnoreCase("AccountsChecker")
+                || sActivityName.equalsIgnoreCase("MultipleGRNInvoicing")
+                || sActivityName.equalsIgnoreCase("AXAccountsSyncException")) {
             return new AccountUser();
-        } else if (sActivityName.equalsIgnoreCase("MultipleGRNInvoicing")) {
-            return new MultipleGRNInvoicing();
         }
         return null;
     }

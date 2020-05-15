@@ -13,6 +13,8 @@ import com.newgen.omniforms.util.Constant.EVENT;
 import com.newgen.omniforms.util.OFUtility;
 import java.awt.Color;
 import java.awt.Font;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 
 @SuppressWarnings("serial")
@@ -89,7 +91,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                 formObject.setNGValue("q_ledgertdspercent", result.get(0).get(0));
                 String calculatedValue = objCalculations.calculatePercentAmount(q_ledgeradjustedoriginamount, result.get(0).get(0));
                 formObject.setNGValue("q_ledgertdsamount", calculatedValue);
-                formObject.setNGValue("q_ledgeradjustmenttdsamount", calculatedValue);
+                formObject.setNGValue("q_ledgeradjustmenttdsamount", new BigDecimal(calculatedValue).setScale(0, BigDecimal.ROUND_HALF_UP));
             }
 
             System.out.println("q_ledgertdsgroupcode: " + formObject.getNGValue("q_ledgertdsgroupcode"));

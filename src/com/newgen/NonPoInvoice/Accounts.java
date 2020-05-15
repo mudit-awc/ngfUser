@@ -57,16 +57,17 @@ public class Accounts implements FormListener {
         switch (pEvent.getType().name()) {
             case "VALUE_CHANGED":
                 switch (pEvent.getSource().getName()) {
-                    case "baseamount":
+
+                    case "invoiceamount":
                     case "exchangerateotherthaninr":
                         objCalculations.exronBaseamountandExchangerateChange(
                                 "currency",
-                                "baseamount",
+                                "invoiceamount",
                                 "newbaseamount",
                                 "exchangerateotherthaninr"
                         );
-                        String baseamount = formObject.getNGValue("baseamount");
-                        System.out.println("got the base amount " + baseamount);
+                        String invoiceamount = formObject.getNGValue("invoiceamount");
+                        System.out.println("got the base amount " + invoiceamount);
                         break;
 
                     case "currency":
@@ -78,13 +79,9 @@ public class Accounts implements FormListener {
                         );
                         break;
 
-//                    case "q_ledgeramount":
-//                        formObject.setNGValue("q_ledgeradjustedoriginamount", formObject.getNGValue("q_ledgeramount"));
-//                        break;
                     case "q_ledgeradjustedoriginamount":
                         BigDecimal bq_ledgeramount = new BigDecimal(formObject.getNGValue("q_ledgeramount"));
                         BigDecimal badjustedoriginamount = new BigDecimal(formObject.getNGValue("q_ledgeradjustedoriginamount"));
-
                         System.out.println("bq_ledgeramount: " + bq_ledgeramount);
                         System.out.println("badjustedoriginamount :" + badjustedoriginamount);
                         if (badjustedoriginamount.compareTo(bq_ledgeramount) > 0) {
@@ -96,10 +93,16 @@ public class Accounts implements FormListener {
                                     formObject.getNGValue("q_ledgertdspercent")
                             );
                             formObject.setNGValue("q_ledgertdsamount", calculatedValue);
-                            formObject.setNGValue("q_ledgeradjustmenttdsamount", calculatedValue);
+//                            formObject.setNGValue("q_ledgeradjustmenttdsamount", calculatedValue);
+                            formObject.setNGValue("q_ledgeradjustmenttdsamount", new BigDecimal(calculatedValue).setScale(0, BigDecimal.ROUND_HALF_UP));
                         }
                         break;
 
+//                    case "q_ledgeradjustmenttdsamount":
+//                        BigDecimal q_ledgeradjustmenttdsamount = new BigDecimal(formObject.getNGValue("q_ledgeradjustmenttdsamount"));
+//                        q_ledgeradjustmenttdsamount = q_ledgeradjustmenttdsamount.setScale(0, BigDecimal.ROUND_HALF_UP);
+//                        formObject.setNGValue("q_ledgeradjustmenttdsamount", q_ledgeradjustmenttdsamount);
+//                        break;
                     case "tdsadjustedbaseamount":
                         String calculatedTDSValue = objCalculations.calculatePercentAmount(
                                 formObject.getNGValue("tdsadjustedbaseamount"),
@@ -116,6 +119,27 @@ public class Accounts implements FormListener {
                         );
                         System.out.println("RCM amount: " + rcmamount);
                         formObject.setNGValue("qtd_reversechargeamount", rcmamount);
+                        break;
+
+                    case "qtd_gstratetype":
+                        if (formObject.getNGValue("qtd_gstratetype").equalsIgnoreCase("RCM")) {
+                            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
+                                    formObject.getNGValue("qtd_hsnsactype"),
+                                    formObject.getNGValue("qtd_hsnsaccode"),
+                                    formObject.getNGValue("qtd_taxcomponent"),
+                                    formObject.getNGValue("accounttype"),
+                                    formObject.getNGValue("accountcode")
+                            );
+                            String reversechargeamount = objCalculations.calculatePercentAmount(
+                                    formObject.getNGValue("qtd_taxamount"),
+                                    reversechargerate
+                            );
+                            formObject.setNGValue("qtd_reversechargepercent", reversechargerate);
+                            formObject.setNGValue("qtd_reversechargeamount", reversechargeamount);
+                        } else {
+                            formObject.setNGValue("qtd_reversechargepercent", "0.00");
+                            formObject.setNGValue("qtd_reversechargeamount", "0.00");
+                        }
                         break;
                 }
                 break;
@@ -180,24 +204,34 @@ public class Accounts implements FormListener {
                             updateTDSvalue(); /*Add code to update tds value in case of change*/
 
                             formObject.ExecuteExternalCommand("NGAddRow", "q_ledgerlinedetails");
+//                            objAccountsGeneral.refreshTaxDocument(processInstanceId);
                             formObject.RaiseEvent("WFSave");
                         }
-
                         break;
 
                     case "Btn_Modify_LedgerLines":
                         updateTDSvalue();
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_ledgerlinedetails");
+                        objAccountsGeneral.refreshTaxDocument(processInstanceId);
+
+                        formObject.setSelectedSheet("Tab1", 3);
                         formObject.RaiseEvent("WFSave");
-                        break;
+                        throw new ValidatorException(new FacesMessage("Please check tax document, as tax document does get refreshed"));
+                    // break;
 
                     case "Btn_Delete_LedgerLines":
                         formObject.ExecuteExternalCommand("NGDeleteRow", "q_ledgerlinedetails");
+                        objAccountsGeneral.refreshTaxDocument(processInstanceId);
                         formObject.RaiseEvent("WFSave");
                         break;
 
                     case "Btn_Modify_Taxdocument":
+                        System.out.println("inside modify of tax document");
+
+                        sgst_cgst(formObject.getSelectedIndex("q_taxdocument"), formObject.getNGValue("qtd_ledgeraccount"),
+                                formObject.getNGValue("qtd_taxcomponent"));
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_taxdocument");
+                        System.out.println("Modified method called");
                         formObject.RaiseEvent("WFSave");
                         break;
 
@@ -216,18 +250,16 @@ public class Accounts implements FormListener {
                         objAccountsGeneral.setResolveAXException();
                         break;
 
-                    case "Pick_journalname":
-                        System.out.println("Inside pick journal");
-                        Query = "select code,Description from JournalNamemaster order by code asc";
-                        System.out.println("Query :" + Query);
-                        objPicklistListenerHandler.openPickList("journalname", "Code,Description", "Journal Master", 70, 70, Query);
-                        break;
-
-                    case "Pick_paymentterm":
-                        Query = "select PaymentTermCode,PaymentTermDesc from PaymentTermMaster";
-                        objPicklistListenerHandler.openPickList("paymentterm", "Code,Description", "Payment Term Master", 70, 70, Query);
-                        break;
-
+//                    case "Pick_journalname":
+//                        System.out.println("Inside pick journal");
+//                        Query = "select code,Description from JournalNamemaster order by code asc";
+//                        System.out.println("Query :" + Query);
+//                        objPicklistListenerHandler.openPickList("journalname", "Code,Description", "Journal Master", 70, 70, Query);
+//                        break;
+//                    case "Pick_paymentterm":
+//                        Query = "select PaymentTermCode,PaymentTermDesc from PaymentTermMaster";
+//                        objPicklistListenerHandler.openPickList("paymentterm", "Code,Description", "Payment Term Master", 70, 70, Query);
+//                        break;
                     case "Pick_ledgeraccount":
                         Query = "select AccountId,Description from LedgerACMaster order by AccountId asc";
                         objPicklistListenerHandler.openPickList("q_ledgeraccountdesc", "Account ID,Description", "Ledger Account Master", 70, 70, Query);
@@ -243,6 +275,29 @@ public class Accounts implements FormListener {
                         } else {
                             formObject.setNGValue("q_ledgeramount", formObject.getNGValue("baseamount"));
                         }
+
+                        //set header business unit, state and department
+                        System.out.println("departmentdsc" + formObject.getNGValue("departmentdsc"));
+                        formObject.setNGValue("q_ledgerdepartment", formObject.getNGValue("departmentdsc"));
+                        formObject.setNGValue("q_ledgerdepartmentvalue", formObject.getNGValue("department"));
+
+                        String site = formObject.getNGValue("site");
+                        Query = "select SiteName from SiteMaster where SiteCode =  '" + site + "'";
+                        System.out.println("Query" + Query);
+                        result = formObject.getDataFromDataSource(Query);
+                        if (result.size() > 0) {
+                            formObject.setNGValue("q_ledgerbusinessunit", site + "-" + result.get(0).get(0));
+                            formObject.setNGValue("q_ledgerbusinessunitcode", site);
+                        }
+
+                        if (site.equalsIgnoreCase("104")) {
+                            formObject.setEnabled("q_ledgerstate", true);
+                        } else {
+                            formObject.setEnabled("q_ledgerstate", false);
+                        }
+
+                        formObject.setNGValue("q_ledgerstate", formObject.getNGValue("state"));
+
                         break;
 
                     case "Pick_ledgerbusinessunit":
@@ -342,34 +397,137 @@ public class Accounts implements FormListener {
                         objPicklistListenerHandler.openPickList("vendorlocation", "State,Address Id,GSTIN Number,Address,Address Name", "Address Master", 70, 70, Query);
                         break;
 
+                    case "Pick_department":
+                        System.out.println("inside Pick_department");
+                        Query = "select value,description from department order by description asc";
+                        objPicklistListenerHandler.openPickList("departmentdsc", "Code,Description", "Department Master", 35, 35, Query);
+                        break;
+
+                    case "Pick_account":
+                        System.out.println("inside Pick_account");
+                        String accounttype = formObject.getNGValue("accounttype");
+                        if (accounttype.equalsIgnoreCase("Vendor")) {
+                            Query = "select VendorCode,VendorName from VendorMaster order by VendorCode asc";
+                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Vendor Master", 70, 70, Query);
+                        } else if (accounttype.equalsIgnoreCase("Customer")) {
+                            Query = "select Code,Description from CustomerMaster order by Code asc";
+                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Customer Master", 70, 70, Query);
+                        } else {
+                            throw new ValidatorException(new FacesMessage("Kindly select the account type value"));
+                        }
+                        break;
+
+                    case "Pick_journalname":
+                        System.out.println("Inside pick journal");
+                        Query = "select code,Description from JournalNamemaster order by code asc";
+                        System.out.println("Query :" + Query);
+                        objPicklistListenerHandler.openPickList("journalname", "Code,Description", "Journal Master", 70, 70, Query);
+                        break;
+
+                    case "Pick_paymentterm":
+                        System.out.println("inside Pick_paymentterm");
+                        Query = "select PaymentTermCode,PaymentTermDesc from PaymentTermMaster";
+                        objPicklistListenerHandler.openPickList("paymentterm", "Code,Description", "Payment Term Master", 70, 70, Query);
+                        break;
+
+                    case "Clear_ledgerdepartment":
+                        formObject.clear("q_ledgerdepartment");
+                        formObject.clear("q_ledgerdepartmentvalue");
+                        break;
+
+                    case "Clear_ledgergla":
+                        formObject.clear("q_ledgergla");
+                        formObject.clear("q_ledgerglavalue");
+                        break;
+
+                    case "Clear_ledgerwarehouse":
+                        formObject.clear("q_ledgerwarehouse");
+                        formObject.clear("q_ledgerwarehousecode");
+                        break;
+
+                    case "Clear_ledgerrso":
+                        formObject.clear("q_ledgerrso");
+                        formObject.clear("q_ledgerrsocode");
+                        break;
+
+                    case "Clear_ledgertdsgroup":
+                        formObject.clear("q_ledgertdsgroup");
+                        formObject.clear("q_ledgertdsgroupcode");
+                        break;
+
+                    case "qtd_exempt":
+                        String exempt = formObject.getNGValue("qtd_exempt");
+                        if (exempt.equalsIgnoreCase("true")) {
+                            formObject.setNGValue("qtd_taxamount", "0");
+                            formObject.setNGValue("qtd_taxamountadjustment", "0");
+                        } else {
+                            String Query = "select amount from cmplx_ledgerlinedetails where "
+                                    + "pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "' "
+                                    + "and ledgeraccount = '" + formObject.getNGValue("qtd_ledgeraccount") + "'";
+                            System.out.println("Query :" + Query);
+                            String taxamount = objCalculations.calculatePercentAmount(
+                                    formObject.getDataFromDataSource(Query).get(0).get(0),
+                                    formObject.getNGValue("qtd_taxrate")
+                            );
+                            formObject.setNGValue("qtd_taxamount", taxamount);
+                            formObject.setNGValue("qtd_taxamountadjustment", taxamount);
+
+                        }
+                        break;
                 }
                 break;
+
             case "TAB_CLICKED":
                 switch (pEvent.getSource().getName()) {
                     case "Tab1":
                         switch (formObject.getSelectedSheet("Tab1")) {
                             case 3: {
-                                ListView ListViewq_taxdocument = (ListView) formObject.getComponent("q_taxdocument");
-                                int rowCount = ListViewq_taxdocument.getRowCount();
-                                if (rowCount == 0) {
-                                    String vendorstate = formObject.getNGValue("vendorstate");
-                                    String customerstate = formObject.getNGValue("customerstate");
-                                    if (!vendorstate.equalsIgnoreCase("") && !customerstate.equalsIgnoreCase("")) {
-                                        String taxcomponent = "", taxrate = "", taxamount = "", reversechargerate = "", reversechargeamount = "", TaxDocumentXML = "";
-                                        Query = "select ledgeraccount from cmplx_ledgerlinedetails where pinstanceid = '" + processInstanceId + "'";
-                                        result = formObject.getDataFromDataSource(Query);
+                                String vendorstate = formObject.getNGValue("vendorstate");
+                                String customerstate = formObject.getNGValue("customerstate");
+                                if (!vendorstate.equalsIgnoreCase("") && !customerstate.equalsIgnoreCase("")) {
+                                    String taxcomponent = "", taxrate = "", taxamount = "", reversechargerate = "", reversechargeamount = "", TaxDocumentXML = "";
+                                    Query = "select ledgeraccount from cmplx_ledgerlinedetails where pinstanceid = '" + processInstanceId + "'";
+                                    System.out.println("Query :" + Query);
+                                    result = formObject.getDataFromDataSource(Query);
+                                    if (result.size() > 0) {
                                         for (int j = 0; j < result.size(); j++) {
-                                            if (vendorstate.equalsIgnoreCase(customerstate)) {
-                                                for (int i = 0; i < 2; i++) {
-                                                    System.out.println("before tax component");
-                                                    if (i == 0) {
-                                                        System.out.println("Inside 0");
-                                                        taxcomponent = "SGST";
-                                                    } else {
-                                                        System.out.println("Inside else 0");
-                                                        taxcomponent = "CGST";
+                                            Query = "select count(*) from cmplx_taxdocument where pinstanceid = '" + processInstanceId + "' "
+                                                    + "and itemnumber = '" + result.get(j).get(0) + "'";
+                                            System.out.println("Query :" + Query);
+                                            List<List<String>> resultcount = formObject.getDataFromDataSource(Query);
+                                            if (resultcount.get(0).get(0).equals("0")) {
+                                                if (vendorstate.equalsIgnoreCase(customerstate)) {
+                                                    for (int i = 0; i < 2; i++) {
+                                                        System.out.println("before tax component");
+                                                        if (i == 0) {
+                                                            System.out.println("Inside 0");
+                                                            taxcomponent = "SGST";
+                                                        } else {
+                                                            System.out.println("Inside else 0");
+                                                            taxcomponent = "CGST";
+                                                        }
+
+                                                        TaxDocumentXML = (new StringBuilder()).append(TaxDocumentXML).
+                                                                append("<ListItem><SubItem>").append(""). //line number
+                                                                append("</SubItem><SubItem>").append(result.get(j).get(0)). //item number
+                                                                append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
+                                                                append("</SubItem><SubItem>").append(""). //hsnsac type
+                                                                append("</SubItem><SubItem>").append(""). //hsnsac code
+                                                                append("</SubItem><SubItem>").append(""). //hsnsac description
+                                                                append("</SubItem><SubItem>").append(taxcomponent). //tax component
+                                                                append("</SubItem><SubItem>").append(taxrate). //rate
+                                                                append("</SubItem><SubItem>").append(taxamount). //tax amount
+                                                                append("</SubItem><SubItem>").append(taxamount). //adjustment tax amount
+                                                                append("</SubItem><SubItem>").append(""). //non business usage %
+                                                                append("</SubItem><SubItem>").append(reversechargerate). //reverse charge %
+                                                                append("</SubItem><SubItem>").append(reversechargeamount). //reverse charge amount
+                                                                append("</SubItem><SubItem>").append(""). //GST Rate Type
+                                                                append("</SubItem><SubItem>").append("false"). //exempt
+                                                                append("</SubItem></ListItem>").toString();
                                                     }
 
+                                                } else {
+                                                    taxcomponent = "IGST";
                                                     TaxDocumentXML = (new StringBuilder()).append(TaxDocumentXML).
                                                             append("<ListItem><SubItem>").append(""). //line number
                                                             append("</SubItem><SubItem>").append(result.get(j).get(0)). //item number
@@ -388,51 +546,42 @@ public class Accounts implements FormListener {
                                                             append("</SubItem><SubItem>").append("false"). //exempt
                                                             append("</SubItem></ListItem>").toString();
                                                 }
-
-                                            } else {
-                                                taxcomponent = "IGST";
-                                                TaxDocumentXML = (new StringBuilder()).append(TaxDocumentXML).
-                                                        append("<ListItem><SubItem>").append(""). //line number
-                                                        append("</SubItem><SubItem>").append(result.get(j).get(0)). //item number
-                                                        append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
-                                                        append("</SubItem><SubItem>").append(""). //hsnsac type
-                                                        append("</SubItem><SubItem>").append(""). //hsnsac code
-                                                        append("</SubItem><SubItem>").append(""). //hsnsac description
-                                                        append("</SubItem><SubItem>").append(taxcomponent). //tax component
-                                                        append("</SubItem><SubItem>").append(taxrate). //rate
-                                                        append("</SubItem><SubItem>").append(taxamount). //tax amount
-                                                        append("</SubItem><SubItem>").append(taxamount). //adjustment tax amount
-                                                        append("</SubItem><SubItem>").append(""). //non business usage %
-                                                        append("</SubItem><SubItem>").append(reversechargerate). //reverse charge %
-                                                        append("</SubItem><SubItem>").append(reversechargeamount). //reverse charge amount
-                                                        append("</SubItem><SubItem>").append(""). //GST Rate Type
-                                                        append("</SubItem><SubItem>").append("false"). //exempt
-                                                        append("</SubItem></ListItem>").toString();
                                             }
                                         }
                                         System.out.println("Tax Document XML " + TaxDocumentXML);
                                         formObject.NGAddListItem("q_taxdocument", TaxDocumentXML);
-                                    } else {
-                                        formObject.setSelectedSheet("Tab1", 0);
-                                        throw new ValidatorException(new FacesMessage("Kindly fill company and vendor tax information"));
+                                        formObject.RaiseEvent("WFSave");
                                     }
+                                } else {
+                                    formObject.setSelectedSheet("Tab1", 0);
+                                    throw new ValidatorException(new FacesMessage("Kindly fill company and vendor tax information"));
                                 }
+//                                ListView ListViewq_taxdocument = (ListView) formObject.getComponent("q_taxdocument");
+//                                int rowCount = ListViewq_taxdocument.getRowCount();
+//                                if (rowCount == 0) {
+//                                }
                             }
                             break;
                             case 2: {
                                 String vendorloc = formObject.getNGValue("vendorlocation");
                                 System.out.println("Vendor Loc: " + vendorloc);
-                                if ("".equalsIgnoreCase(formObject.getNGValue("vendorlocation"))) {
-                                    Query = "select AddressId, StateName, Address, GSTINNumber, AddressName "
-                                            + "from AddressMaster where PartyCode ='" + formObject.getNGValue("accountcode") + "'";
-                                    System.out.println("Query for Vendor" + Query);
-                                    result = formObject.getDataFromDataSource(Query);
-                                    System.out.println("result for vendor is " + result);
+                                Query = "select AddressId, StateName, Address, GSTINNumber, AddressName "
+                                        + "from AddressMaster where PartyCode ='" + formObject.getNGValue("accountcode") + "'";
+                                System.out.println("Query for Vendor" + Query);
+                                result = formObject.getDataFromDataSource(Query);
+                                System.out.println("result for vendor is " + result);
+                                if (result.size() > 0) {
                                     formObject.setNGValue("vendorlocation", result.get(0).get(0));
                                     formObject.setNGValue("vendorstate", result.get(0).get(1));
                                     formObject.setNGValue("vendoraddress", result.get(0).get(2));
                                     formObject.setNGValue("vendorgstingdiuid", result.get(0).get(3));
                                     formObject.setNGValue("vendortaxinformation", result.get(0).get(4));
+                                } else {
+                                    formObject.setNGValue("vendorlocation", "");
+                                    formObject.setNGValue("vendorstate", "");
+                                    formObject.setNGValue("vendoraddress", "");
+                                    formObject.setNGValue("vendorgstingdiuid", "");
+                                    formObject.setNGValue("vendortaxinformation", "");
                                 }
                             }
                             break;
@@ -474,30 +623,32 @@ public class Accounts implements FormListener {
             System.out.println("sessionId====" + sessionId);
             System.out.println("Username====" + userName);
             System.out.println("workItemId====" + workItemId);
+            System.out.println("processDefId====" + processDefId);
         } catch (Exception e) {
             System.out.println("Exception in FieldValueBagSet::::" + e.getMessage());
         }
     }
 
     @Override
-    public void formPopulated(FormEvent arg0
-    ) {
-        System.out.println("inside form populate of accounts non po invoice");
+    public void formPopulated(FormEvent arg0) {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("----------------------Intiation Workstep Loaded from form populated........---------------------------");
-        System.out.println("");
         objGeneral = new General();
 
-        if (activityName.equalsIgnoreCase("Accounts")) {
-            formObject.setNGValue("filestatus", "");
-            formObject.clear("filestatus");
-            formObject.addComboItem("filestatus", "Approved", "Approved");
-            formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
-            // formObject.addComboItem("filestatus", "Discarded", "Discarded");
+        formObject.clear("filestatus");
+        formObject.setNGValue("filestatus", "");
+        formObject.addComboItem("filestatus", "Approve", "Approve");
+        formObject.addComboItem("filestatus", "Reject", "Reject");
+        formObject.addComboItem("filestatus", "Query Raise", "Query Raise");
+        formObject.addComboItem("filestatus", "Discard", "Discard");
+
+        String currentdate = objGeneral.getCurrentDate();
+        if ("".equalsIgnoreCase(formObject.getNGValue("postingdate"))) {
+            formObject.setNGValue("postingdate", currentdate);
         }
-        if (activityName.equalsIgnoreCase("AXSyncException")) {
-            formObject.setSheetVisible("Tab2", 0, false);
+        if ("".equalsIgnoreCase(formObject.getNGValue("duedate"))) {
+            formObject.setNGValue("duedate", currentdate);
         }
 
         Query = "select HeadName from ServiceNonPoHeadMaster order by HeadName asc";
@@ -514,16 +665,8 @@ public class Accounts implements FormListener {
             formObject.addComboItem("site", result.get(i).get(0), result.get(i).get(0));
         }
 
-//        formObject.addComboItem("department", "All", "All");
-//        Query = "select description from department order by description asc";
-//        System.out.println("Query is " + Query);
-//        result = formObject.getDataFromDataSource(Query);
-//        System.out.println("result is "+result);
-//        for (int i = 0; i < result.size(); i++) {
-//            formObject.addComboItem("department", result.get(i).get(0), result.get(i).get(0));
-//        }
-
         formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
+        formObject.setNGDateRange("postingdate", null, new Date(objGeneral.getCurrDateForRange()));
         formObject.setNGDateRange("duedate", new Date(objGeneral.getCurrDateForRange()), null);
     }
 
@@ -560,81 +703,35 @@ public class Accounts implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objGeneral = new General();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
+        objGeneral.compareDate(formObject.getNGValue("invoicedate"), formObject.getNGValue("postingdate"));
         objAccountsGeneral.getsetServiceNonPoSummary(processInstanceId);
         BigDecimal baseamount = new BigDecimal(formObject.getNGValue("baseamount")).setScale(2, BigDecimal.ROUND_FLOOR);
         BigDecimal linesum = getLedgerLineAmount();
         System.out.println("Baseamount " + baseamount);
         System.out.println("Line sum " + linesum);
         if (linesum.compareTo(baseamount) == 0) {
-            if (activityName.equalsIgnoreCase("Accounts")) {
-                String sQuery = "", nextactivity = "", strLevelFlag = "";
-                String filestatus = formObject.getNGValue("filestatus");
-                String levelflag = formObject.getNGValue("levelflag");
-                /*if (filestatus.equalsIgnoreCase("Query Raised")) {
-                 Query = "select TOP 1 ApproverCode from ServiceNonPOApproverMaster "
-                 + "where Head='" + formObject.getNGValue("proctype") + "' "
-                 + "and state = '" + formObject.getNGValue("state") + "' order by ApproverLevel DESC";
-                 System.out.println("Query1:" + Query);
-                 result = formObject.getDataFromDataSource(Query);
-                 System.out.println("result is" + result);
-                 if (result.size() > 0) {
-                 formObject.setNGValue("assignto", result.get(0).get(0));
-                 } else {
-                 formObject.setNGValue("assignto", "NA");
-                 }
-                 } else if (filestatus.equalsIgnoreCase("Approved")) {
-                 String levelflag = formObject.getNGValue("levelflag");
-                 System.out.println("levelflag " + levelflag);
-                 if (levelflag.equalsIgnoreCase("Maker")) {
-                 Query = "select ApproverLevel, ApproverCode from ServiceNonPOApproverMaster where  "
-                 + "head = '" + formObject.getNGValue("proctype") + "' "
-                 + "and state = '" + formObject.getNGValue("state") + "' "
-                 + "and approverlevel ='Checker'";
-                 System.out.println("Query " + Query);
-                 result = formObject.getDataFromDataSource(Query);
-                 if (result.size() > 0) {
-                 formObject.setNGValue("assignto", result.get(0).get(1));
-                 formObject.setNGValue("nextactivity", "Accounts");
-                 formObject.setNGValue("levelflag", "Checker");
-                 } else {
-                 formObject.setNGValue("nextactivity", "SchedularAccount");
-                 }
-                 } else {
-                 formObject.setNGValue("nextactivity", "SchedularAccount");
-                 }
-                 }
-                 System.out.println("Next Activity :" + formObject.getNGValue("nextactivity"));
-                 System.out.println("value in assign to" + formObject.getNGValue("assignto")); */
-
-                if (filestatus.equalsIgnoreCase("Approved")) {
-                    Query = "select count(*) from ServiceNonPOApproverMaster "
+            String filestatus = formObject.getNGValue("filestatus");
+            if (activityName.equalsIgnoreCase("AccountsMaker")) {
+                if (filestatus.equalsIgnoreCase("Approve")) {
+                    objGeneral.checkServiceNonPoDoAUser("AccountsChecker", "");
+                } else if (filestatus.equalsIgnoreCase("Reject")) {
+                    Query = "select top 1 ApproverLevel from ServiceNonPOApproverMaster "
                             + "where head = '" + formObject.getNGValue("proctype") + "' "
                             + "and site = '" + formObject.getNGValue("site") + "' "
                             + "and state = '" + formObject.getNGValue("state") + "' "
-                            + "and department = '" + formObject.getNGValue("department") + "' ";
-
-                    if (levelflag.equalsIgnoreCase("Maker")) {
-                        sQuery = Query + "and ApproverLevel = 'Checker' ";
-                        System.out.println("Query :"+sQuery);
-                        result = formObject.getDataFromDataSource(sQuery);
-                        if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                            throw new ValidatorException(new FacesMessage("No Account Checker defined in the DoA."));
-                        } else {
-                            strLevelFlag = "Checker";
-                            nextactivity = "Accounts";
-                        }
-                    } else if (levelflag.equalsIgnoreCase("Checker")) {
-                        strLevelFlag = "SchedulerAccount";
-                        nextactivity = "SchedulerAccount";
-                    }
-                } else if (filestatus.equalsIgnoreCase("Query Raised")) {
-                    nextactivity = "Initiator";
+                            + "and department = '" + formObject.getNGValue("department") + "'"
+                            + "and ApproverLevel not in ('AccountsMaker','AccountsChecker') order by ApproverLevel desc";
+                    System.out.println("Query :" + Query);
+                    result = formObject.getDataFromDataSource(Query);
+                    formObject.setNGValue("FilterDoA_ApproverLevel", result.get(0).get(0));
+                    formObject.setNGValue("levelflag", result.get(0).get(0));
                 }
-                formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
-                formObject.setNGValue("levelflag", strLevelFlag);
-                formObject.setNGValue("nextactivity", nextactivity);
-                formObject.setNGValue("previousactivity", activityName);
-                objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text51"), "q_transactionhistory");
+            } else if (activityName.equalsIgnoreCase("AccountsChecker")) {
+                if (filestatus.equalsIgnoreCase("Reject")) {
+                    formObject.setNGValue("FilterDoA_ApproverLevel", "AccountsMaker");
+                    formObject.setNGValue("levelflag", "AccountsMaker");
+                }
+                formObject.setNGValue("accountschecker", userName);
             } else if (activityName.equalsIgnoreCase("AXSyncException")) {
                 Query = "select count(*) from cmplx_axintegration_error where "
                         + "resolve = 'False' and pinstanceid = '" + processInstanceId + "'";
@@ -642,6 +739,16 @@ public class Accounts implements FormListener {
                     throw new ValidatorException(new FacesMessage("Kindly resolve all the errors to proceed further"));
                 }
             }
+
+            formObject.setNGValue("previousactivity", activityName);
+            objGeneral.maintainHistory(
+                    userName,
+                    activityName,
+                    formObject.getNGValue("filestatus"),
+                    "",
+                    formObject.getNGValue("Text51"),
+                    "q_transactionhistory"
+            );
         } else {
             throw new ValidatorException(new FacesMessage("Base amount and sum of ledger line should be equal"));
         }
@@ -794,5 +901,37 @@ public class Accounts implements FormListener {
         formObject.setNGValue("q_taxdocument", RowIndex, 13, formObject.getNGValue("qtd_gstratetype"));
         formObject.setNGValue("q_taxdocument", RowIndex, 14, formObject.getNGValue("qtd_exempt"));
 
+    }
+
+    public void sgst_cgst(int rowIndex, String LedgerAccount, String TaxComponent) {
+        System.out.println("Inside sgst_cgst method");
+        String TaxComponent1 = "", TaxDocumentXML1 = "", Line_no = "";
+        if (TaxComponent.equalsIgnoreCase("SGST") || TaxComponent.equalsIgnoreCase("CGST")) {
+            if (TaxComponent.equalsIgnoreCase("SGST")) {
+                TaxComponent1 = "CGST";
+                Line_no = String.valueOf(rowIndex + 1);
+            } else {
+                TaxComponent1 = "SGST";
+                Line_no = String.valueOf(rowIndex - 1);
+            }
+            System.out.println("Updating Listview for " + TaxComponent1 + "");
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 0, "");//line number
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 1, LedgerAccount); //item number
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 2, formObject.getNGValue("vendorgstingdiuid")); //gstingdiuid
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 3, formObject.getNGValue("qtd_hsnsactype")); //hsnsac type
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 4, formObject.getNGValue("qtd_hsnsaccode")); //hsnsac code
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 5, formObject.getNGValue("qtd_hsnsacdescription")); //hsnsac description
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 6, TaxComponent1); //tax component
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 7, formObject.getNGValue("qtd_taxrate")); //rate
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 8, formObject.getNGValue("qtd_taxamount")); //tax amount
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 9, formObject.getNGValue("qtd_taxamountadjustment")); //adjustment tax amount
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 10, formObject.getNGValue("qtd_nonbusinessusagepercent")); //non business usage %
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 11, formObject.getNGValue("qtd_reversechargepercent")); //reverse charge %
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 12, formObject.getNGValue("qtd_reversechargeamount")); //reverse charge amount
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 13, formObject.getNGValue("qtd_gstratetype")); //GST Rate Type
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 14, formObject.getNGValue("qtd_exempt"));
+
+            System.out.println("Values updated");
+        }
     }
 }

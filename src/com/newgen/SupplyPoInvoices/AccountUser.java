@@ -20,13 +20,13 @@ import com.newgen.omniforms.event.ComponentEvent;
 import com.newgen.omniforms.event.FormEvent;
 import com.newgen.omniforms.listener.FormListener;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import javax.faces.application.FacesMessage;
 import javax.faces.validator.ValidatorException;
-import org.json.JSONArray;
 
 /**
  *
@@ -44,6 +44,9 @@ public class AccountUser implements FormListener {
     General objGeneral = null;
     AccountsGeneral objAccountsGeneral = null;
     PicklistListenerHandler objPicklistListenerHandler = null;
+    MultipleGrnGeneral objMultipleGrnGeneral = null;
+    Float updated_partial_payment;
+    private String activityId;
 
     @Override
     public void formLoaded(FormEvent fe) {
@@ -59,6 +62,7 @@ public class AccountUser implements FormListener {
             folderId = formConfig.getConfigElement("FolderId");
             serverUrl = formConfig.getConfigElement("ServletPath");
             activityName = formObject.getWFActivityName();
+            activityId = formConfig.getConfigElement("ActivityId");
             processInstanceId = formConfig.getConfigElement("ProcessInstanceId");
             workItemId = formConfig.getConfigElement("WorkitemId");
             userName = formConfig.getConfigElement("UserName");
@@ -66,6 +70,7 @@ public class AccountUser implements FormListener {
 
             System.out.println("ProcessInstanceId===== " + processInstanceId);
             System.out.println("Activityname=====" + activityName);
+            System.out.println("activityId=====" + activityId);
             System.out.println("CabinetName====" + engineName);
             System.out.println("sessionId====" + sessionId);
             System.out.println("Username====" + userName);
@@ -82,28 +87,13 @@ public class AccountUser implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objGeneral = new General();
-        formObject.setNGValue("processid", processInstanceId);
-        if ("MultipleGRNInvoicing".equalsIgnoreCase(formObject.getNGValue("IntroducedAt"))
-                || activityName.equalsIgnoreCase("MultipleGRNInvoicing")) {
-            formObject.setNGValue("multiplegrn", "True");
-            Query = "select distinct ext.purchaseorderno from ext_supplypoinvoices ext, WFINSTRUMENTTABLE wf "
-                    + "where wf.ProcessInstanceID = ext.processid "
-                    + "and wf.ActivityName='AccountsUser' "
-                    + "and ext.multiplegrn='False' "
-                    + "and ext.purchaseorderno is not null";
-            System.out.println("Query: " + Query);
-            result = formObject.getDataFromDataSource(Query);
-            for (int i = 0; i < result.size(); i++) {
-                formObject.addComboItem("purchaseorderno", result.get(i).get(0), result.get(i).get(0));
-            }
-            formObject.setVisible("Frame11", true);
-            formObject.setVisible("Frame9", false);
-        }
+        String multiplegrn = formObject.getNGValue("multiplegrn");
+        String previousactivity = formObject.getNGValue("previousactivity");
+        String previousstatus = formObject.getNGValue("previousstatus");
 
-        formObject.setNGValue("challanflag", "false");
         formObject.setSelectedSheet("Tab2", 4);
+        formObject.setNGValue("processid", processInstanceId); //Do not remove. This is for Multiple GRN Introduction WS
         String currentdate = objGeneral.getCurrentDate();
-        System.out.println("currentdate : " + currentdate);
         if ("".equalsIgnoreCase(formObject.getNGValue("postingdate"))) {
             formObject.setNGValue("postingdate", currentdate);
         }
@@ -111,6 +101,40 @@ public class AccountUser implements FormListener {
             formObject.setNGValue("duedate", currentdate);
         }
 
+        if (activityName.equalsIgnoreCase("AccountsMaker")) {
+            if (previousstatus.equalsIgnoreCase("Accept RGP")) {
+                formObject.addComboItem("accountsstatus", "Challan Attached", "Challan Attached");
+            } else {
+                formObject.addComboItem("accountsstatus", "Submit For Invoicing", "Submit For Invoicing");
+                if (previousstatus.equalsIgnoreCase("Accept NRGP")) {
+                } else {
+                    if (multiplegrn.equalsIgnoreCase("False")) {
+                        formObject.addComboItem("accountsstatus", "GRN Cancellation Required", "GRN Cancellation Required");
+                    }
+                }
+                formObject.addComboItem("accountsstatus", "Exception", "Exception");
+                formObject.addComboItem("accountsstatus", "Discard", "Discard");
+            }
+        } else if (activityName.equalsIgnoreCase("AccountsChecker")) {
+            if (previousstatus.equalsIgnoreCase("Challan Attached")) {
+                formObject.addComboItem("accountsstatus", "Challan Accepted", "Challan Accepted");
+            } else {
+                formObject.addComboItem("accountsstatus", "Create Invoicing", "Create Invoicing");
+                formObject.addComboItem("accountsstatus", "Reject", "Reject");
+                formObject.addComboItem("accountsstatus", "Exception", "Exception");
+                formObject.addComboItem("accountsstatus", "Discard", "Discard");
+            }
+        }
+
+        formObject.clear("proctype");
+        Query = "select HeadName from supplypoheadmaster order by HeadName asc";
+        System.out.println("Query is " + Query);
+        result = formObject.getDataFromDataSource(Query);
+        for (int i = 0; i < result.size(); i++) {
+            formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
+        }
+
+        formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
         formObject.setNGDateRange("postingdate", null, new Date(objGeneral.getCurrDateForRange()));
         formObject.setNGDateRange("duedate", new Date(objGeneral.getCurrDateForRange()), null);
     }
@@ -134,64 +158,46 @@ public class AccountUser implements FormListener {
         objGeneral = new General();
         objAccountsGeneral = new AccountsGeneral();
         System.out.println("inside submit form started");
-        // Code for Mandatory document started
-        String prevActivity = formObject.getNGValue("previousactivity");
+        objGeneral.compareDate(formObject.getNGValue("invoicedate"), formObject.getNGValue("postingdate"));
+
+        String accountsException = "";
         String accountStatus = formObject.getNGValue("accountsstatus");
-        String accountremarks = formObject.getNGValue("accountremarks");
-        String purchasestatuschecker = formObject.getNGValue("purchasestatuschecker");
-
-        int challanCounter = 0;
-
-        String processid = "";
-        processid = formObject.getNGValue("processid");
-        System.out.println("first query : " + Query);
-        System.out.println("first result : " + result);
-        System.out.println("process id : " + processid);
-
-        Query = "select Name from PDBDocument where DocumentIndex in \n"
-                + "(select DocumentIndex from PDBDocumentContent where ParentFolderIndex = "
-                + "(select itemindex from ext_supplypoinvoices where processid ='" + processid + "'))";
-        result = formObject.getDataFromDataSource(Query);
-        System.out.println("second query : " + Query);
-        System.out.println("second result : " + result);
-        for (int i = 0; i < result.size(); i++) {
-            System.out.println("inside query loop");
-            if (result.get(i).get(0).equalsIgnoreCase("Challan")) {
-                System.out.println("Challan counter m aagya");
-                challanCounter++;
-            }
-        }
-        System.out.println("accountStatus ** " + accountStatus);
-        if (accountStatus.equalsIgnoreCase("GRN Cancel Required")) {
-            formObject.setNGValue("previousstatus", "GRN Cancel Required");
-        }
-        System.out.println("Value of challanCounter : " + challanCounter);
-        System.out.println("activityName :" + activityName);
-        System.out.println("prevActivity :" + prevActivity);
-        System.out.println("purchasestatuschecker ::::::::::" + purchasestatuschecker);
-
-        if (activityName.equalsIgnoreCase("AccountsUser") && prevActivity.equalsIgnoreCase("StoreUser")) {
-            if (purchasestatuschecker.equalsIgnoreCase("Replacement/Exchange") || purchasestatuschecker.equalsIgnoreCase("Purchase Return")) {
-                System.out.println("inside Challan Accepted");
-                if (challanCounter <= 0) {
-                    System.out.println("Challan exception m aagyaEQUAL WALE");
-                    throw new ValidatorException(new FacesMessage("Kindly attach Challan Document", ""));
-                }
-                formObject.setNGValue("challanflag", "true");
+        if (activityName.equalsIgnoreCase("AccountsMaker")) {
+            if (accountStatus.equalsIgnoreCase("Submit For Invoicing")) {
+                objGeneral.checkSupplyPoDoAUser("AccountsChecker");
+            } else if (accountStatus.equalsIgnoreCase("GRN Cancellation Required")) {
+                objGeneral.checkSupplyPoDoAUser("StoreMaker");
             }
         }
 
-        String username = formObject.getUserName();
-        ListView ListViewq_history = (ListView) formObject.getComponent("q_transactionhistory");
-        int RowCountq_history = ListViewq_history.getRowCount();
-        System.out.println("RowCountq_history : " + RowCountq_history);
-        String initiatorRemarks = formObject.getNGValue("initiatorremarks");
-        objGeneral.maintainHistory(username, activityName, accountStatus, "", accountremarks, "q_transactionhistory");
+        if (accountStatus.equalsIgnoreCase("Challan Attached")) {
+            Query = "select count(*) from PDBDocument where DocumentIndex in "
+                    + "(select DocumentIndex from PDBDocumentContent where ParentFolderIndex = "
+                    + "(select itemindex from ext_supplypoinvoices where processid ='" + processInstanceId + "'))"
+                    + "and Name = 'Challan'";
+            System.out.println("Query : " + Query);
+            result = formObject.getDataFromDataSource(Query);
+            if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                objGeneral.checkSupplyPoDoAUser("AccountsChecker");
+                throw new ValidatorException(new FacesMessage("Kindly attach Challan Document", ""));
+            }
+        }
 
+        if (accountStatus.equalsIgnoreCase("Exception")) {
+            accountsException = ": " + formObject.getNGValue("accountsexception");
+        }
         objAccountsGeneral.getsetSupplyPoSummary(processInstanceId);
-        // Code for Mandatory document Ended here    
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                accountStatus
+                + accountsException,
+                "",
+                formObject.getNGValue("accountsremarks"),
+                "q_transactionhistory"
+        );
         formObject.setNGValue("previousactivity", activityName);
-        System.out.println("Previous Activity :" + formObject.getNGValue("previousactivity"));
+        formObject.setNGValue("previousstatus", accountStatus);
     }
 
     @Override
@@ -208,15 +214,37 @@ public class AccountUser implements FormListener {
         objPicklistListenerHandler = new PicklistListenerHandler();
         objGeneral = new General();
         objAccountsGeneral = new AccountsGeneral();
+        objMultipleGrnGeneral = new MultipleGrnGeneral();
         System.out.println("inside event disoatch");
         switch (pEvent.getType().name()) {
             case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
+
+                    case "Btn_Resolve":
+                        System.out.println("inside btn resolve");
+                        objAccountsGeneral.setResolveAXException();
+                        break;
+
                     case "Btn_Modify_Taxdocument":
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_taxdocument");
                         break;
 
                     case "Btn_Modify_Prepayment":
+                        int row_count = formObject.getLVWRowCount("q_prepayment");
+                        System.out.println("Listview Rowcount: " + row_count);
+                        for (int i = 0; i < row_count; i++) {
+                            System.out.println("Inside for loop");
+                            float remaining_newgen = Float.parseFloat(formObject.getNGValue("q_prepayment", i, 3));
+                            System.out.println("Default remaining value: " + remaining_newgen);
+                            float remaining_now = remaining_newgen - updated_partial_payment;
+                            System.out.println("Updated value: " + remaining_now);
+                            if (remaining_now < 0) {
+                                throw new ValidatorException(new FacesMessage("Partial Payment cannot be greater then remaining amount"));
+                            } else {
+                                formObject.setNGValue("q_prepayment", i, 3, String.valueOf(remaining_now));
+                                System.out.println("Updated value set in ListView");
+                            }
+                        }
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_prepayment");
                         break;
 
@@ -236,24 +264,101 @@ public class AccountUser implements FormListener {
                         break;
 
                     case "Btn_Add_Maintaincharges":
-                        if (formObject.getNGValue("qoc_assessablevalue").equalsIgnoreCase("true")) {
+                        boolean whtRefreshFlag = true;
+                        boolean tdRefreshFlag = true;
+                        String qoc_assessablevalue = formObject.getNGValue("qoc_assessablevalue");
+                        if (qoc_assessablevalue.equalsIgnoreCase("true")) {
                             addAssessableAmount("Add", formObject.getNGValue("qoc_linenumber"), formObject.getNGValue("qoc_itemnumber"), new BigDecimal(formObject.getNGValue("qoc_chargesvalue")));
+                            formObject.clear("q_taxdocument");
+                            formObject.clear("q_withholdingtax");
+
                         }
                         formObject.ExecuteExternalCommand("NGAddRow", "q_othercharges");
+                        formObject.RaiseEvent("WFSave");
+                        if (qoc_assessablevalue.equalsIgnoreCase("true")) {
+                            Query = "select count(*) from cmplx_taxdocument where pinstanceid='" + processInstanceId + "'";
+                            if (formObject.getDataFromDataSource(Query).get(0).get(0).equalsIgnoreCase("0")) { //rowcount of tax document > 0
+                                tdRefreshFlag = false;
+                            }
+
+                            Query = "select count(*) from cmplx_withholdingtax where pinstanceid='" + processInstanceId + "'";
+                            if (formObject.getDataFromDataSource(Query).get(0).get(0).equalsIgnoreCase("0")) { //rowcount of tax document > 0
+                                whtRefreshFlag = false;
+                            }
+
+                            if (tdRefreshFlag && whtRefreshFlag) {
+                                throw new ValidatorException(new FacesMessage("Withholding and Tax Document details has been refreshed"));
+
+                            }
+                            if (tdRefreshFlag) {
+                                throw new ValidatorException(new FacesMessage("Tax Document details has been refreshed"));
+                            }
+                            if (whtRefreshFlag) {
+                                throw new ValidatorException(new FacesMessage("Withholding details has been refreshed"));
+                            }
+                        }
                         break;
 
                     case "Btn_Modify_Maintaincharges":
+                        int selectedRowIndex1 = formObject.getSelectedIndex("q_othercharges");
+                        if (formObject.getNGValue("q_othercharges", selectedRowIndex1, 4).equalsIgnoreCase("TRUE")) {
+                            float old_value = Float.parseFloat(formObject.getNGValue("q_othercharges", selectedRowIndex1, 6));
+                            System.out.println("Old value : " + old_value);
+                            float new_value = Float.parseFloat(formObject.getNGValue("qoc_chargesvalue"));
+                            System.out.println("new value: " + new_value);
+                            float diff_value = new_value - old_value;
+                            System.out.println("Diff_value: " + diff_value);
+                            if (diff_value > 0) {
+                                System.out.println("inside add assesableamount");
+                                addAssessableAmount(
+                                        "ADD",
+                                        formObject.getNGValue("qoc_linenumber"),
+                                        formObject.getNGValue("qoc_itemnumber"),
+                                        new BigDecimal(String.valueOf(diff_value))
+                                );
+                                System.out.println("line no: " + formObject.getNGValue("qoc_linenumber"));
+                            } else if (diff_value < 0) {
+                                System.out.println("inside subtract asseassable amount");
+                                diff_value = Math.abs(diff_value);
+                                System.out.println("absolute value: " + diff_value);
+                                addAssessableAmount(
+                                        "Subtract",
+                                        formObject.getNGValue("qoc_linenumber"),
+                                        formObject.getNGValue("qoc_itemnumber"),
+                                        new BigDecimal(String.valueOf(diff_value))
+                                );
+
+                            }
+                        }
+                        System.out.println("modify ho gya samjho ");
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_othercharges");
-                        break;
+                        formObject.clear("q_withholdingtax");
+                        formObject.clear("q_taxdocument");
+                        formObject.RaiseEvent("WFSave");
+                        throw new ValidatorException(new FacesMessage("Please check Tax Document & Withholding Tax as they does get refreshed"));
 
                     case "Btn_Delete_Maintaincharges":
-                        if (formObject.getNGValue("qoc_assessablevalue").equalsIgnoreCase("true")) {
-                            addAssessableAmount("Subtract", formObject.getNGValue("qoc_linenumber"), formObject.getNGValue("qoc_itemnumber"), new BigDecimal(formObject.getNGValue("qoc_chargesvalue")));
+                        System.out.println("Inside mouse_click Btn_Delete_Maintaincharges");
+                        int selectedRowIndex = formObject.getSelectedIndex("q_othercharges");
+                        System.out.println("getSelectedIndex : " + selectedRowIndex);
+                        if (formObject.getNGValue("q_othercharges", selectedRowIndex, 4).equalsIgnoreCase("TRUE")) {
+                            addAssessableAmount(
+                                    "Subtract",
+                                    formObject.getNGValue("q_othercharges", selectedRowIndex, 0),
+                                    formObject.getNGValue("q_othercharges", selectedRowIndex, 1),
+                                    new BigDecimal(formObject.getNGValue("q_othercharges", selectedRowIndex, 5))
+                            );
+
                         }
+                        System.out.println("delete ho gya samjho ");
                         formObject.ExecuteExternalCommand("NGDeleteRow", "q_othercharges");
-                        break;
+                        formObject.clear("q_withholdingtax");
+                        formObject.clear("q_taxdocument");
+                        formObject.RaiseEvent("WFSave");
+                        throw new ValidatorException(new FacesMessage("Please check Tax Document & Withholding Tax as they does get refreshed"));
 
                     case "Btn_Allocate_Maintaincharges":
+                        String qoc_assessablevalueflag = formObject.getNGValue("qoc_assessablevalue");
                         String qoc_category = formObject.getNGValue("qoc_category");
                         Query = "select amount,linenumber,itemid,assessableamount from cmplx_invoiceline where pinstanceid = '" + processInstanceId + "'";
                         System.out.println("Query :" + Query);
@@ -272,21 +377,29 @@ public class AccountUser implements FormListener {
 
                             for (int i = 0; i < result.size(); i++) {
                                 BigDecimal blinenetamount = new BigDecimal(result.get(i).get(3));
-                                BigDecimal bchargesvalue_line = (blinenetamount.divide(btotalnetamount)).multiply(bchargesvalue).setScale(2, BigDecimal.ROUND_FLOOR);
+                                BigDecimal bchargesvalue_line = (blinenetamount.divide(btotalnetamount, RoundingMode.HALF_UP)).multiply(bchargesvalue).setScale(2, BigDecimal.ROUND_FLOOR);
                                 OtherChargesLineXML = (new StringBuilder()).append(OtherChargesLineXML).
                                         append("<ListItem><SubItem>").append(result.get(i).get(1)).
                                         append("</SubItem><SubItem>").append(result.get(i).get(2)).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_chargescode")).
                                         append("</SubItem><SubItem>").append(qoc_category).
-                                        append("</SubItem><SubItem>").append("true").
+                                        append("</SubItem><SubItem>").append(qoc_assessablevalueflag).
                                         append("</SubItem><SubItem>").append(bchargesvalue_line).
                                         append("</SubItem><SubItem>").append(bchargesvalue_line).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_vendoraccount")).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_chargesat")).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_vendoraccountcode")).
+                                        append("</SubItem><SubItem>").append(formObject.getNGValue("purchaseorderno")).
                                         append("</SubItem></ListItem>").toString();
 
-                                addAssessableAmount("Add", result.get(i).get(1), result.get(i).get(2), bchargesvalue_line);
+                                if (qoc_assessablevalueflag.equalsIgnoreCase("TRUE")) {
+                                    addAssessableAmount(
+                                            "Add",
+                                            result.get(i).get(1),
+                                            result.get(i).get(2),
+                                            bchargesvalue_line
+                                    );
+                                }
                             }
                             System.out.println("OtherCharges Line XML " + OtherChargesLineXML);
                             formObject.NGAddListItem("q_othercharges", OtherChargesLineXML);
@@ -299,15 +412,22 @@ public class AccountUser implements FormListener {
                                         append("</SubItem><SubItem>").append(result.get(i).get(2)).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_chargescode")).
                                         append("</SubItem><SubItem>").append(qoc_category).
-                                        append("</SubItem><SubItem>").append("true").
+                                        append("</SubItem><SubItem>").append(qoc_assessablevalueflag).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_chargesvalue")).
                                         append("</SubItem><SubItem>").append(objCalculations.calculatePercentAmount(result.get(i).get(3), formObject.getNGValue("qoc_chargesvalue"))).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_vendoraccount")).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_chargesat")).
                                         append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_vendoraccountcode")).
+                                        append("</SubItem><SubItem>").append(formObject.getNGValue("purchaseorderno")).
                                         append("</SubItem></ListItem>").toString();
-
-                                addAssessableAmount("Add", result.get(i).get(1), result.get(i).get(2), new BigDecimal(formObject.getNGValue("qoc_chargesvalue")));
+                                if (qoc_assessablevalueflag.equalsIgnoreCase("TRUE")) {
+                                    addAssessableAmount(
+                                            "Add",
+                                            result.get(i).get(1),
+                                            result.get(i).get(2),
+                                            new BigDecimal(formObject.getNGValue("qoc_chargesvalue"))
+                                    );
+                                }
                             }
                             System.out.println("OtherCharges Line XML " + OtherChargesLineXML);
                             formObject.NGAddListItem("q_othercharges", OtherChargesLineXML);
@@ -323,42 +443,35 @@ public class AccountUser implements FormListener {
                         break;
 
                     case "Btn_add_multplegrn":
-                        String grnnumber = formObject.getNGValue("q_grn");
-                        Query = "select count(*) from cmplx_multiplegrninvoicing where "
-                                + "pinstanceid = '" + processInstanceId + "' and grnnumber = '" + grnnumber + "'";
-                        System.out.println("Query : " + Query);
-
-                        if (formObject.getDataFromDataSource(Query).get(0).get(0).equals("0")) {
-                            addMultipleGRN(grnnumber);
-                            formObject.RaiseEvent("WFSave");
-                        } else {
-                            throw new ValidatorException(new FacesMessage("GRN number already added.", ""));
-                        }
+                        objMultipleGrnGeneral.addMultipleGrnClick(processInstanceId);
                         break;
 
                     case "Btn_delete_multiplegrn":
-                        formObject.ExecuteExternalCommand("NGDeleteRow", "q_multiplegrninvoicing");
-                        formObject.RaiseEvent("WFSave");
-                        formObject.clear("q_polines");
-                        formObject.clear("q_gateentrylines");
-                        formObject.clear("q_invoiceline");
-                        formObject.clear("q_othercharges");
-                        formObject.clear("q_withholdingtax");
-                        formObject.clear("q_taxdocument");
-                        formObject.clear("q_prepayment");
-                        formObject.setNGValue("retentioncredit", "");
-                        formObject.setNGValue("retentionpercent", "");
-                        formObject.setNGValue("retentioncredit", "");
-                        formObject.setNGValue("retentionamount", "");
-                        formObject.setNGValue("companytaxinformation", "");
-                        formObject.setNGValue("companyaddress", "");
-                        formObject.setNGValue("vendortaxinformation", "");
-                        formObject.setNGValue("vendoraddress", "");
+                        objMultipleGrnGeneral.deleteMultipleGrnClick();
                         break;
 
                     case "Btn_combine":
-                        System.out.println("button click Btn_combine");
-                        CombineMultipleGrn();
+                        objMultipleGrnGeneral.combineMultipleGrnClick();
+                        break;
+
+                    case "qtd_exempt":
+                        String exempt = formObject.getNGValue("qtd_exempt");
+                        if (exempt.equalsIgnoreCase("true")) {
+                            formObject.setNGValue("qtd_taxamount", "0");
+                            formObject.setNGValue("qtd_taxamountadjustment", "0");
+                        } else {
+                            String Query = "select newassessableamount from cmplx_invoiceline where "
+                                    + "pinstanceid = '" + processInstanceId + "' "
+                                    + "and itemid ='" + formObject.getNGValue("qtd_itemnumber") + "' and linenumber='" + formObject.getNGValue("qtd_linenumber") + "'";
+                            System.out.println("Query :" + Query);
+                            String taxamount = objCalculations.calculatePercentAmount(
+                                    formObject.getDataFromDataSource(Query).get(0).get(0),
+                                    formObject.getNGValue("qtd_taxrate")
+                            );
+                            formObject.setNGValue("qtd_taxamount", taxamount);
+                            formObject.setNGValue("qtd_taxamountadjustment", taxamount);
+
+                        }
                         break;
                 }
                 break;
@@ -387,13 +500,27 @@ public class AccountUser implements FormListener {
                         }
                         break;
 
+                    case "qwht_adjustedoriginamount":
+                        String tdsadjustedbaseamount = formObject.getNGValue("qwht_adjustedoriginamount");
+                        String tdspercent = formObject.getNGValue("qwht_tdspercent");
+                        String calculatedTDSValue = objCalculations.calculatePercentAmount(tdsadjustedbaseamount, tdspercent);
+                        formObject.setNGValue("qwht_tdsamount", calculatedTDSValue);
+//                        formObject.setNGValue("qwht_adjustedtdsamount", calculatedTDSValue);
+                        formObject.setNGValue("qwht_adjustedtdsamount", new BigDecimal(calculatedTDSValue).setScale(0, BigDecimal.ROUND_HALF_UP));
+                        break;
+
                     case "qoc_linenumber":
                         setPOItemNumber("qoc_itemnumber", "qoc_linenumber", "");
                         String suppliercode = formObject.getNGValue("suppliercode");
                         formObject.setNGValue("qoc_vendoraccount", suppliercode + "-" + formObject.getNGValue("suppliername"));
                         formObject.setNGValue("qoc_vendoraccountcode", suppliercode);
+                        formObject.setNGValue("qoc_ponumber", formObject.getNGValue("purchaseorderno"));
                         break;
 
+                    case "qprepayment_partialpaymentamount":
+                        updated_partial_payment = Float.parseFloat(formObject.getNGValue("qprepayment_partialpaymentamount"));
+
+                        break;
                     case "qoc_category":
                     case "qoc_chargesvalue":
                         String qoc_category = formObject.getNGValue("qoc_category");
@@ -438,23 +565,23 @@ public class AccountUser implements FormListener {
                             formObject.setEnabled("qoc_linenumber", false);
                             formObject.setVisible("Btn_Allocate_Maintaincharges", true);
                             formObject.setVisible("Btn_Add_Maintaincharges", false);
-                            //formObject.setVisible("Btn_Modify_Maintaincharges", false);
-                            formObject.setVisible("Btn_Delete_Maintaincharges", false);
-                            formObject.setNGValue("qoc_assessablevalue", true);
-                            formObject.setVisible("qoc_assessablevalue", false);
+                            formObject.setVisible("Btn_Modify_Maintaincharges", false);
+//                            formObject.setVisible("Btn_Delete_Maintaincharges", false);
+//                            formObject.setNGValue("qoc_assessablevalue", true);
+//                            formObject.setVisible("qoc_assessablevalue", false);
                         } else if (qoc_chargesat.equalsIgnoreCase("Line")) {
                             formObject.setEnabled("qoc_linenumber", true);
                             formObject.setVisible("Btn_Allocate_Maintaincharges", false);
                             formObject.setVisible("Btn_Add_Maintaincharges", true);
-//                            formObject.setVisible("Btn_Modify_Maintaincharges", true);
-                            formObject.setVisible("Btn_Delete_Maintaincharges", true);
-                            formObject.setNGValue("qoc_assessablevalue", false);
-                            formObject.setVisible("qoc_assessablevalue", true);
+                            formObject.setVisible("Btn_Modify_Maintaincharges", true);
+//                            formObject.setVisible("Btn_Delete_Maintaincharges", true);
+//                            formObject.setNGValue("qoc_assessablevalue", false);
+//                            formObject.setVisible("qoc_assessablevalue", true);
                         } else {
                             formObject.setEnabled("qoc_linenumber", false);
                             formObject.setVisible("Btn_Allocate_Maintaincharges", false);
                             formObject.setVisible("Btn_Add_Maintaincharges", false);
-//                            formObject.setVisible("Btn_Modify_Maintaincharges", false);
+                            formObject.setVisible("Btn_Modify_Maintaincharges", false);
                             formObject.setVisible("Btn_Delete_Maintaincharges", false);
                             formObject.setVisible("qoc_assessablevalue", false);
                         }
@@ -462,24 +589,8 @@ public class AccountUser implements FormListener {
 
                     case "grnstartdate":
                     case "grnenddate":
-                        formObject.clear("q_grn");
-                        formObject.clear("q_multiplegrninvoicing");
-                        Query = "select grnnumber from ext_supplypoinvoices "
-                                + "where purchaseorderno = '" + formObject.getNGValue("purchaseorderno") + "' "
-                                + "and multiplegrn='False' "
-                                + "and format(grnsyncdate,'dd/MM/yyyy') "
-                                + "between '" + formObject.getNGValue("grnstartdate") + "' "
-                                + "and '" + formObject.getNGValue("grnenddate") + "'";
-                        System.out.println("Query: " + Query);
-                        List<List<String>> grnresult = formObject.getDataFromDataSource(Query);
-                        for (int i = 0; i < grnresult.size(); i++) {
-                            String grnnumber = grnresult.get(i).get(0);
-                            formObject.addComboItem("q_grn", grnnumber, grnnumber);
-                            addMultipleGRN(grnnumber);
-                        }
-                        formObject.RaiseEvent("WFSave");
+                        objMultipleGrnGeneral.grnStartEndDateChange();
                         break;
-
                 }
                 break;
             case "TAB_CLICKED":
@@ -496,15 +607,9 @@ public class AccountUser implements FormListener {
                                 Query = "select freight,itemid,linenumber from cmplx_gateentryline where pinstanceid ='" + processInstanceId + "'";
                                 result = formObject.getDataFromDataSource(Query);
                                 float freightRate = Float.parseFloat(result.get(0).get(0));
-//                                String freightRate = result.get(0).get(0);
-//                                if (null != freightRate
-//                                        || !freightRate.equalsIgnoreCase("0")
-//                                        || !freightRate.equalsIgnoreCase("0.0")
-//                                        || !freightRate.equalsIgnoreCase("0.00")) {
-
                                 if ((null != (result.get(0).get(0))) && (Float.compare(freightRate, 0) > 0)) {
                                     System.out.println("freightRate null nhi h and value bhi badi h ");
-
+                                    System.out.println("qoc_ponumber :" + formObject.getNGValue("qoc_ponumber"));
                                     Query1 = "select assessableamount from cmplx_invoiceline where "
                                             + "pinstanceid = '" + processInstanceId + "' and linenumber = '" + result.get(0).get(2) + "'";
                                     System.out.println("Query1 :" + Query1);
@@ -522,6 +627,7 @@ public class AccountUser implements FormListener {
                                             append("</SubItem><SubItem>").append(formObject.getNGValue("suppliername")).
                                             append("</SubItem><SubItem>").append("Line").
                                             append("</SubItem><SubItem>").append(formObject.getNGValue("suppliercode")).
+                                            append("</SubItem><SubItem>").append(formObject.getNGValue("purchaseorderno")).
                                             append("</SubItem></ListItem>").toString();
                                 }
 
@@ -554,6 +660,7 @@ public class AccountUser implements FormListener {
                                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_vendoraccount")).
                                                     append("</SubItem><SubItem>").append("Line").
                                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qoc_vendoraccountcode")).
+                                                    append("</SubItem><SubItem>").append(formObject.getNGValue("purchaseorderno")).
                                                     append("</SubItem></ListItem>").toString();
                                         }
                                     }
@@ -562,7 +669,7 @@ public class AccountUser implements FormListener {
                                         formObject.NGAddListItem("q_othercharges", OtherChargesLineXML);
                                     }
                                 }
-///yaha tha pehle upper wala code
+
                             }
                             break;
 
@@ -581,7 +688,7 @@ public class AccountUser implements FormListener {
                             case 6: { //WithHolding Tax
                                 System.out.println("Inside tab 6 click");
                                 Query = "select po.linenumber,po.itemnumber,po.tdsgroup,po.tdspercent,"
-                                        + "inv.assessableamount,po.purchaseorderno from cmplx_poline po, cmplx_invoiceline inv "
+                                        + "inv.newassessableamount,po.purchaseorderno,inv.assessableamount from cmplx_poline po, cmplx_invoiceline inv "
                                         + "where po.pinstanceid = inv.pinstanceid and po.linenumber = inv.linenumber "
                                         + "and po.purchaseorderno = inv.purchaseorderno "
                                         + "and po.pinstanceid = '" + processInstanceId + "' "
@@ -591,9 +698,11 @@ public class AccountUser implements FormListener {
                             break;
                             case 7: { //Tax Document
                                 System.out.println("Inside case 7 Tax Document ");
-                                Query = "select po.linenumber,po.itemnumber,gstin_gdi_uid,hsn,sac,igstrate,igsttaxamount,"
-                                        + "cgstrate,cgsttaxamount,sgstrate,sgsttaxamount,nonbusinessusagepercent,exempt,"
-                                        + "inv.newassessableamount,po.nongst,po.taxratetype,po.vatrate,po.vattaxamount,po.purchaseorderno "
+                                Query = "select po.linenumber,po.itemnumber,gstin_gdi_uid,hsn,sac,COALESCE(igstrate,'0'),"
+                                        + "COALESCE(igsttaxamount,'0'),COALESCE(cgstrate,'0'),COALESCE(cgsttaxamount,'0'),"
+                                        + "COALESCE(sgstrate,'0'),COALESCE(sgsttaxamount,'0'),COALESCE(nonbusinessusagepercent,'0'),"
+                                        + "exempt,inv.newassessableamount,po.nongst,COALESCE(po.taxratetype,''),"
+                                        + "COALESCE(po.vatrate,'0'),COALESCE(po.vattaxamount,'0'),po.purchaseorderno "
                                         + "from cmplx_poline po, cmplx_invoiceline inv where "
                                         + "po.pinstanceid = '" + processInstanceId + "' and po.pinstanceid = inv.pinstanceid "
                                         + "and po.linenumber = inv.linenumber and po.itemnumber = inv.itemid ";
@@ -622,7 +731,8 @@ public class AccountUser implements FormListener {
     }
 
     @Override
-    public void continueExecution(String string, HashMap<String, String> hm) {
+    public void continueExecution(String string, HashMap<String, String> hm
+    ) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -632,16 +742,19 @@ public class AccountUser implements FormListener {
     }
 
     @Override
-    public String encrypt(String string) {
+    public String encrypt(String string
+    ) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public String decrypt(String string) {
+    public String decrypt(String string
+    ) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    void setPOItemNumber(String itemnumberId, String linenumberId, String assessableamountId) {
+    void setPOItemNumber(String itemnumberId, String linenumberId, String assessableamountId
+    ) {
         Query = "select itemid,assessableamount from cmplx_invoiceline where pinstanceid = '" + processInstanceId + "' "
                 + "and linenumber = '" + formObject.getNGValue(linenumberId) + "'";
         System.out.println("Query :" + Query);
@@ -653,7 +766,8 @@ public class AccountUser implements FormListener {
         }
     }
 
-    void setPOLineNumber(String linenumberId) {
+    void setPOLineNumber(String linenumberId
+    ) {
         formObject.clear(linenumberId);
         Query = "select linenumber from cmplx_invoiceline where pinstanceid = '" + processInstanceId + "'";
         System.out.println("Query :" + Query);
@@ -665,7 +779,8 @@ public class AccountUser implements FormListener {
         }
     }
 
-    void addAssessableAmount(String operator, String linenumber, String itemnumber, BigDecimal assessableamount) {
+    void addAssessableAmount(String operator, String linenumber, String itemnumber, BigDecimal assessableamount
+    ) {
 
         String addedAssessable = "";
         ListView ListViewq_invoicedetails = (ListView) formObject.getComponent("q_invoiceline");
@@ -676,11 +791,11 @@ public class AccountUser implements FormListener {
                 if (formObject.getNGValue("q_invoiceline", i, 0).equalsIgnoreCase(linenumber)
                         && formObject.getNGValue("q_invoiceline", i, 1).equalsIgnoreCase(itemnumber)) {
                     if (operator.equalsIgnoreCase("Add")) {
-                        addedAssessable = new BigDecimal(formObject.getNGValue("q_invoiceline", i, 10)).add(assessableamount).toString();
+                        addedAssessable = new BigDecimal(formObject.getNGValue("q_invoiceline", i, 12)).add(assessableamount).toString();
                     } else {
-                        addedAssessable = new BigDecimal(formObject.getNGValue("q_invoiceline", i, 10)).subtract(assessableamount).toString();
+                        addedAssessable = new BigDecimal(formObject.getNGValue("q_invoiceline", i, 12)).subtract(assessableamount).toString();
                     }
-                    formObject.setNGValue("q_invoiceline", i, 10, addedAssessable);
+                    formObject.setNGValue("q_invoiceline", i, 12, addedAssessable);
                     break;
                 }
             }
@@ -688,7 +803,8 @@ public class AccountUser implements FormListener {
         }
     }
 
-    void addMultipleGRN(String GRNnumber) {
+    void addMultipleGRN(String GRNnumber
+    ) {
         System.out.println("Inside btn add multiple grn");
         Query = "select processid , grnnumber,  format(grnsyncdate,'dd/MM/yyyy'), gateentryid, invoiceno,format(invoicedate,'dd/MM/yyyy'), "
                 + "invoiceamount, lrno, format(lrdate,'dd/MM/yyyy'), loadingcity, transportercode, transportername, "
@@ -714,6 +830,7 @@ public class AccountUser implements FormListener {
 
         System.out.println("XML :" + MultipleGrnXML);
         formObject.NGAddListItem("q_multiplegrninvoicing", MultipleGrnXML);
+        objGeneral.linkWorkitem(engineName, sessionId, processInstanceId, result.get(0).get(0));
     }
 
     void CombineMultipleGrn() {
@@ -724,9 +841,9 @@ public class AccountUser implements FormListener {
                 + "pinstanceid = '" + processInstanceId + "')";
         System.out.println("Query :" + Query);
         result = formObject.getDataFromDataSource(Query);
-        System.out.println("result : "+result);
+        System.out.println("result : " + result);
         for (int i = 0; i < result.size(); i++) {
-            System.out.println("inside for "+i);
+            System.out.println("inside for " + i);
             ListView listview1 = (ListView) formObject.getComponent("q_gateentrylines");
             int rowcount = listview1.getRowCount();
             String GateLineContractXML = "";

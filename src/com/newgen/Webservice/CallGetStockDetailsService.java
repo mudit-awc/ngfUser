@@ -50,11 +50,8 @@ public class CallGetStockDetailsService {
 
             String Query = "select itemnumber,configuration,location,sitecode,warehousecode,quantity "
                     + "from cmplx_raitemjournal where pinstanceid = '" + processInstanceId + "'";
+            System.out.println("Query :"+Query);
             List<List<String>> result = formObject.getDataFromDataSource(Query);
-            System.out.println("result : " + result);
-            System.out.println("result ka size : " + result.size());
-//            int sizee = result.size();
-//            System.out.println("sizee : " + sizee);
             quantity = new String[result.size()];
             System.out.println("quantity :" + quantity);
             if (result.size() > 0) {
@@ -161,52 +158,48 @@ public class CallGetStockDetailsService {
         String ErrorMessage = objJSONObject.optString("errorMessage");
         System.out.println("IsSuccess : " + IsSuccess);
         System.out.println("ErrorMessage :call purchase order :" + ErrorMessage);
-        String Query = "select itemnumber,configuration,sitecode,location from cmplx_raitemjournal where pinstanceid = '" + pid + "'";
+        String Query = "select itemnumber,configuration,sitecode,location from cmplx_raitemjournal "
+                + "where pinstanceid = '" + pid + "'";
+        System.out.println("Query : " +Query);
         List<List<String>> result = formObject.getDataFromDataSource(Query);
-        System.out.println("result : " + result);
         if (result.size() > 0) {
             if (IsSuccess.equalsIgnoreCase("true")) {
+                System.out.println("inside true");
                 JSONArray objJSONArray_ItemList = objJSONObject.getJSONArray("ItemList");
                 for (int i = 0; i < objJSONArray_ItemList.length(); i++) {
-                    System.out.println("i ki value: " + i);
+                    System.out.println("inside for for loop");
                     itemNumber = objJSONArray_ItemList.getJSONObject(i).optString("_itemNumber");
                     configuration = objJSONArray_ItemList.getJSONObject(i).optString("_configurationName");
-
+                    System.out.println("itemNumber - "+itemNumber);
+                    System.out.println("configuration - "+configuration);
                     JSONObject objjson = objJSONArray_ItemList.optJSONObject(i);
                     JSONArray objJSONArray_InventList = objjson.getJSONArray("InventList");
-                    System.out.println("objJSONArray_InventList: " + objJSONArray_InventList);
-                    System.out.println("Len :" + objJSONArray_InventList.length());
+                    System.out.println("after creating object");
                     if (objJSONArray_InventList.length() == 0) {
                         throw new ValidatorException(new FacesMessage("Quantity Out of Stock at Item Number " + itemNumber + " and configuration " + configuration + "", ""));
                     } else {
+                        System.out.println("inside else @");
                         for (int j = 0; j < objJSONArray_InventList.length(); j++) {
-                            System.out.println("Now Checking for Quantity ");
                             System.out.println("J ki value: " + j);
                             availableQty = objJSONArray_InventList.getJSONObject(j).optString("availableQty");
                             availavle_qty = Float.parseFloat(availableQty);
-                            System.out.println("availavle_qty :" + availavle_qty);
                         }
                     }
-                    String Query1 = "select itemnumber,configuration,quantity "
-                            + "from cmplx_raitemjournal where pinstanceid = '" + pid + "'and itemnumber='" + itemNumber + "' and configuration ='" + configuration + "' ";
+                    System.out.println("before query1");
+                    String Query1 = "select sum(quantity) from cmplx_raitemjournal where pinstanceid = '" + pid + "' "
+                            + "and itemnumber='" + itemNumber + "' and configuration ='" + configuration + "' ";
                     List<List<String>> result1 = formObject.getDataFromDataSource(Query1);
                     System.out.println("Query1 : " + Query1);
-                    System.out.println("result1 : " + result1);
-                    System.out.println("result1 : " + result1.get(0).get(2));
-
-                    System.out.println("itemNumber :" + itemNumber);
-                    System.out.println("configuration :" + configuration);
-                    input_qty = Float.parseFloat(result1.get(0).get(2));
+                    input_qty = Float.parseFloat(result1.get(0).get(0));
                     System.out.println("input_qty : " + input_qty);
                     System.out.println("availavle_qty: " + availavle_qty);
                     if (availavle_qty == null) {
-                        System.out.println("zero set karadi ");
-                        // availavle_qty = 0f;
+                        System.out.println("Inside available qty null ");
                         throw new ValidatorException(new FacesMessage("Quantity Out of Stock at Item Number " + itemNumber + " and configuration " + configuration + "", ""));
                     }
                     System.out.println("availavle_qty -- " + availavle_qty);
                     if ((Float.compare(availavle_qty, input_qty) == 1) || (Float.compare(availavle_qty, input_qty) == 0)) {
-                        System.out.println("Quantity Badi h sahi h");
+                        System.out.println("Qty in stock");
                     } else {
                         System.out.println("error in Quantity chhoti h");
                         throw new ValidatorException(new FacesMessage("Quantity is Exceeding at Item Number " + itemNumber + " and configuration " + configuration + ""

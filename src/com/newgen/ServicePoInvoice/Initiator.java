@@ -69,6 +69,17 @@ public class Initiator implements FormListener {
                         objCalculations.exronCurrencyChange("currency", "invoiceamount", "newbaseamount", "exchangerateotherthaninr");
                         break;
 
+//                    case "suppliercode":
+//                        Query = "select gta from VendorMaster where VendorCode = '" + formObject.getNGValue("suppliercode") + "'";
+//                        result = formObject.getDataFromDataSource("Query");
+//                        if (result.size() > 0) {
+//                            if (result.get(0).get(0).equalsIgnoreCase("0")) {
+//                                formObject.setNGValue("gtavendor", "false");
+//                            } else {
+//                                formObject.setNGValue("gtavendor", "true");
+//                            }
+//                        }
+//                        break;
                     case "invoiceamount":
                     case "exchangerateotherthaninr":
                         objCalculations.exronBaseamountandExchangerateChange("currency", "invoiceamount", "newbaseamount", "exchangerateotherthaninr");
@@ -202,10 +213,25 @@ public class Initiator implements FormListener {
                         break;
 
                     case "Btn_Delete_Invoice":
+                        ListView ListViewq_invoicedetails_del = (ListView) formObject.getComponent("q_invoicedetails");
+                        int rowCount_del = ListViewq_invoicedetails_del.getRowCount();
+                        int rowcount2_del = formObject.getNGListIndex("q_invoicedetails");
+                        System.out.println("Row count2 before delete: " + rowcount2_del);
+                        System.out.println("Row count before delete: " + rowCount_del);
+
                         formObject.ExecuteExternalCommand("NGDeleteRow", "q_invoicedetails");
                         formObject.RaiseEvent("WFSave");
+
+                        rowCount_del = ListViewq_invoicedetails_del.getRowCount();
+                        rowcount2_del = formObject.getNGListIndex("q_invoicedetails");
+                        System.out.println("Row count2 after delete: " + rowcount2_del);
+                        System.out.println("Row count after delete: " + rowCount_del);
                         break;
 
+//                    case "Pick_department":
+//                        Query = "select description from department order by description asc";
+//                        objPicklistListenerHandler.openPickList("department", "Description", "Department Master", 35, 35, Query);
+//                        break;
                     case "Btn_fetchpodetails":
                         boolean rowexists = false;
                         String ponumber = formObject.getNGValue("ponumber");
@@ -239,14 +265,14 @@ public class Initiator implements FormListener {
                     case "Btn_addtoinvoice":
                         boolean rowexist = false;
                         ListView ListViewq_invoicedetails = (ListView) formObject.getComponent("q_invoicedetails");
-                        int rowCount = ListViewq_invoicedetails.getRowCount();
-                        System.out.println("Row count : " + rowCount);
+                        int rowCount = formObject.getLVWRowCount("q_invoicedetails");
+                        System.out.println("Row count 123123: " + rowCount);
                         if (rowCount > 0) {
                             System.out.println(">0");
                             for (int i = 0; i < rowCount; i++) {
                                 System.out.println("Loop " + i);
                                 if (formObject.getNGValue("qpo_linenumber").equalsIgnoreCase(formObject.getNGValue("q_invoicedetails", i, 0))
-                                        && formObject.getNGValue("qpo_ponumber").equalsIgnoreCase(formObject.getNGValue("q_invoicedetails", i, 11))) {
+                                        && formObject.getNGValue("qpo_ponumber").equalsIgnoreCase(formObject.getNGValue("q_invoicedetails", i, 13))) {
                                     System.out.println("Row exist");
                                     rowexist = true;
                                     break;
@@ -280,6 +306,8 @@ public class Initiator implements FormListener {
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_quantity")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_rate")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_amount")).
+                                    append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_discountpercent")).
+                                    append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_discountamount")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_taxpercent")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_taxamount")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_amountwithtax")).
@@ -350,8 +378,8 @@ public class Initiator implements FormListener {
         System.out.println("----------------------Intiation Workstep Loaded from form populated........---------------------------");
         formObject.clear("filestatus");
         objGeneral = new General();
-//        formObject.setNGDateRange("invoicedate", null, new Date("2015/07/15"));
-        formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
+        formObject.setEnabled("state", true);
+
         if (!formObject.getNGValue("previousactivity").equalsIgnoreCase("Approver")
                 && !formObject.getNGValue("previousactivity").equalsIgnoreCase("Accounts")) {
             formObject.addComboItem("filestatus", "Initiate", "Initiate");
@@ -381,9 +409,13 @@ public class Initiator implements FormListener {
             for (int i = 0; i < result.size(); i++) {
                 formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+//        formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
+        formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
 
     }
 
@@ -414,7 +446,9 @@ public class Initiator implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
+        String levelflag = formObject.getNGValue("levelflag");
         objGeneral = new General();
+        objAccountsGeneral = new AccountsGeneral();
         objGeneral.checkDuplicateInvoice(
                 formObject.getNGValue("suppliercode"),
                 formObject.getNGValue("invoicenumber"),
@@ -422,49 +456,22 @@ public class Initiator implements FormListener {
                 processInstanceId
         );
 
-        try {
-            if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
-                objGeneral.setException(userName, "Combo3", "Text15");
-            } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Initiate")) {
-                int levelflag = Integer.parseInt(formObject.getNGValue("levelflag")) + 1;
-                Query = "select ApproverCode from ServicePOApproverMaster where Head = '" + formObject.getNGValue("proctype").replace(",", "%") + "' "
-                        + "and ApproverLevel='" + levelflag + "' "
-                        + "and State ='" + formObject.getNGValue("state") + "' "
-                        + "and approvercode is not null "
-                        + "and approvercode <> ''";
-                System.out.println((new StringBuilder()).append("Query:").append(Query).toString());
-                result = formObject.getDataFromDataSource(Query);
-                System.out.println((new StringBuilder()).append("result").append(result).toString());
-                if (result.size() > 0) {
-                    formObject.setNGValue("nextactivity", "Approver");
-                    formObject.setNGValue("assignto", result.get(0).get(0));
-                    formObject.setNGValue("levelflag", Integer.valueOf(levelflag));
-                } else {
-                    Query = "select ApproverLevel, ApproverCode from ServicePOApproverMaster where  "
-                            + "head = '" + formObject.getNGValue("proctype").replace(",", "%") + "' "
-                            + "and state = '" + formObject.getNGValue("state") + "' "
-                            + "and approverlevel in ('Maker', 'Checker')";
-                    System.out.println("Query is " + Query);
-                    result = formObject.getDataFromDataSource(Query);
-                    System.out.println("result is " + result);
-                    if (result.size() > 0) {
-                        if (result.get(0).get(0).equalsIgnoreCase("Maker")) {
-                            formObject.setNGValue("levelflag", "Maker");
-                        } else if (result.get(0).get(0).equalsIgnoreCase("Checker")) {
-                            formObject.setNGValue("levelflag", "Checker");
-                        }
-                        formObject.setNGValue("assignto", result.get(0).get(1));
-                        formObject.setNGValue("nextactivity", "Accounts");
-                    } else {
-                        formObject.setNGValue("nextactivity", "SchedulerAccount");
-                    }
-                }
-            }
-            formObject.setNGValue("previousactivity", activityName);
-            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        objGeneral.checkServicePoDoAUser(levelflag, "");
+        formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
+        formObject.setNGValue("FilterDoA_Head", formObject.getNGValue("proctype"));
+        formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
+        formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
+        formObject.setNGValue("previousactivity", activityName);
+        objAccountsGeneral.setFinancialDimension("q_financialdimension", processInstanceId);
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                formObject.getNGValue("filestatus"),
+                "",
+                formObject.getNGValue("Text15"),
+                "q_transactionhistory"
+        );
+
     }
 
     @Override

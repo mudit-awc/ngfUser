@@ -16,7 +16,6 @@ import com.newgen.common.General;
 import com.newgen.common.ReadProperty;
 import com.newgen.omniforms.FormConfig;
 import com.newgen.omniforms.FormReference;
-import com.newgen.omniforms.component.IRepeater;
 import com.newgen.omniforms.component.ListView;
 import com.newgen.omniforms.component.PickList;
 import com.newgen.omniforms.context.FormContext;
@@ -35,19 +34,10 @@ public class QualityUser implements FormListener {
     CallGateentryService objGetSetGateEntryData = null;
     PostGRN objPostGRN = null;
 
-    String activityName = null;
-    String engineName = null;
-    String sessionId = null;
-    String folderId = null;
-    String FILE = null;
-    String serverUrl = null;
-    String processInstanceId = null;
-    String workItemId = null;
-    String userName = null;
-    String processDefId = null;
-    String Query = null;
-    String Query1 = null;
+    String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
+            processInstanceId = null, workItemId = null, userName = null, processDefId = null, returnvalue = null, Query;
     List<List<String>> result;
+    String Query1 = null;
     List<List<String>> result1;
     List<List<String>> result2;
     private String webserviceStatus;
@@ -61,7 +51,6 @@ public class QualityUser implements FormListener {
 
     @Override
     public void eventDispatched(ComponentEvent pEvent) throws ValidatorException {
-        // TODO Auto-generated method stub
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
 
@@ -69,14 +58,9 @@ public class QualityUser implements FormListener {
         objGetSetGateEntryData = new CallGateentryService();
         objReadProperty = new ReadProperty();
         objAccountsGeneral = new AccountsGeneral();
-        formObject.setNGValue("processid", processInstanceId);
-        IRepeater RepeaterControlFrame5 = formObject.getRepeaterControl("Frame5");
-        String GateEntryLineLV = "q_gateentrylines";
-        String PoLineLV = "q_polines";
+//        formObject.setNGValue("processid", processInstanceId);
         switch (pEvent.getType().name()) {
-
             case "VALUE_CHANGED":
-
                 switch (pEvent.getSource().getName()) {
                     case "Quality_linenumber":
                         formObject.setNGValue("Q_acceptedquantity", "");
@@ -85,89 +69,60 @@ public class QualityUser implements FormListener {
                         formObject.setNGValue("Q_rejectedremarks", "");
                         formObject.setNGValue("Quality_itemselect", "");
                         String linenoinchange = formObject.getNGValue("Quality_linenumber");
-                        String accept = "",
-                         reject = "",
-                         accepremarks = "",
-                         rejectremarks = "";
-
                         Query = "select itemid from cmplx_gateentryline where "
                                 + "pinstanceid='" + processInstanceId + "' "
                                 + "and linenumber='" + linenoinchange + "'";
                         result = formObject.getDataFromDataSource(Query);
                         System.out.println("Query : " + Query);
                         formObject.setNGValue("Quality_itemselect", result.get(0).get(0));
-
                         ListView ListViewq_quarantinemanagement = (ListView) formObject.getComponent("q_quarantinemanagement");
                         int RowCountq_quarantinemanagement = ListViewq_quarantinemanagement.getRowCount();
-                        System.out.println("RowCount_q_quarantine_OLD : " + RowCountq_quarantinemanagement);
                         for (int m = 0; m < RowCountq_quarantinemanagement; m++) {
-                            System.out.println("inside change for loop > " + m);
-                            System.out.println("linenoinchange : " + linenoinchange);
-
                             if (linenoinchange.equalsIgnoreCase(formObject.getNGValue("q_quarantinemanagement", m, 5))) {
-                                System.out.println("inside change if");
-                                accept = formObject.getNGValue("q_quarantinemanagement", m, 1);
-                                accepremarks = formObject.getNGValue("q_quarantinemanagement", m, 2);
-                                reject = formObject.getNGValue("q_quarantinemanagement", m, 3);
-                                rejectremarks = formObject.getNGValue("q_quarantinemanagement", m, 4);
-                                System.out.println("accept : " + accept);
-                                System.out.println("accepremarks : " + accepremarks);
-                                System.out.println("reject : " + reject);
-                                System.out.println("rejectremarks : " + rejectremarks);
-
-                                formObject.setNGValue("Q_acceptedquantity", accept);
-                                formObject.setNGValue("Q_acceptedremarks", accepremarks);
-                                formObject.setNGValue("Q_rejectedquantity", reject);
-                                formObject.setNGValue("Q_rejectedremarks", rejectremarks);
+                                formObject.setNGValue("Q_acceptedquantity", formObject.getNGValue("q_quarantinemanagement", m, 1));
+                                formObject.setNGValue("Q_acceptedremarks", formObject.getNGValue("q_quarantinemanagement", m, 2));
+                                formObject.setNGValue("Q_rejectedquantity", formObject.getNGValue("q_quarantinemanagement", m, 3));
+                                formObject.setNGValue("Q_rejectedremarks", formObject.getNGValue("q_quarantinemanagement", m, 4));
 //                                formObject.setNGValue("Quality_itemselect", formObject.getNGValue("q_quarantinemanagement", m, 1));
                                 break;
                             } else {
-                                System.out.println("else m h");
                                 formObject.setNGValue("Q_acceptedquantity", "");
                                 formObject.setNGValue("Q_acceptedremarks", "");
                                 formObject.setNGValue("Q_rejectedquantity", "");
                                 formObject.setNGValue("Q_rejectedremarks", "");
                             }
-                            System.out.println("going to again loop");
                         }
                         break;
+
                     case "Q_acceptedquantity": {
                         String linenumber = formObject.getNGValue("Quality_linenumber");
                         String s_acceptedQty = formObject.getNGValue("Q_acceptedquantity");
                         String s_rejectedQty = formObject.getNGValue("Q_rejectedquantity");
                         float acceptedQty = Float.parseFloat(s_acceptedQty);
                         float GRNqty = 0;
-                        System.out.println("acceptedQty + " + acceptedQty);
-                        System.out.println("s_rejectedQty + " + s_rejectedQty);
 
                         ListView ListViewq_gateentrylines = (ListView) formObject.getComponent("q_gateentrylines");
                         int RowCountq_gateentrylines = ListViewq_gateentrylines.getRowCount();
                         System.out.println("RowCountq_gateentrylines + " + RowCountq_gateentrylines);
                         for (int j = 0; j < RowCountq_gateentrylines; j++) {
                             System.out.println("inside loooooop1");
-                            System.out.println("formObject.getNGValue(\"q_gateentrylines\", j, 1) " + formObject.getNGValue("q_gateentrylines", j, 1));
                             if (linenumber.equalsIgnoreCase(formObject.getNGValue("q_gateentrylines", j, 0))) {
                                 System.out.println("value same h");
-                                System.out.println("GRNqty + " + formObject.getNGValue("q_gateentrylines", j, 4));
                                 GRNqty = Float.parseFloat(formObject.getNGValue("q_gateentrylines", j, 4));
-                                System.out.println("GRNqty + " + GRNqty);
                             }
                         }
                         if (acceptedQty > GRNqty) {
-                            System.out.println("inside if ++++");
+                            System.out.println("inside if");
                             formObject.setNGValue("Q_acceptedquantity", "");
                             throw new ValidatorException(new FacesMessage("Quarantine accepted quantity entered is exceeding the GRN quantity", ""));
                         } else {
-                            System.out.println("else m aagya");
-                            //    if ("".equalsIgnoreCase(s_rejectedQty)
-                            //           || null == s_rejectedQty) {
+                            System.out.println("Inside else");
                             float newrejectedqty = GRNqty - acceptedQty;
                             formObject.setNGValue("Q_rejectedquantity", newrejectedqty);
-                            //    }
                         }
-
                     }
                     break;
+
                     case "Q_rejectedquantity": {
                         String linenumber = formObject.getNGValue("Quality_linenumber");
                         String s_acceptedQty = formObject.getNGValue("Q_acceptedquantity");
@@ -185,23 +140,17 @@ public class QualityUser implements FormListener {
                             formObject.setNGValue("Q_rejectedquantity", "");
                             throw new ValidatorException(new FacesMessage("Quarantine rejected quantity entered is exceeding the GRN quantity", ""));
                         } else {
-                            //        if ("".equalsIgnoreCase(s_acceptedQty)
-                            //               || null == s_acceptedQty) {
                             float newacceptedqty = GRNqty - rejectedQty;
                             formObject.setNGValue("Q_acceptedquantity", newacceptedqty);
-                            //      }
                         }
-
                     }
                     break;
                 }
                 break;
 
             case "MOUSE_CLICKED":
-
                 switch (pEvent.getSource().getName()) {
                     case "Btn_Resolve":
-                        System.out.println("inside btn resolve");
                         objAccountsGeneral.setResolveAXException();
                         break;
 
@@ -230,14 +179,12 @@ public class QualityUser implements FormListener {
                                 if (RowCountq_quarantinemanagement > 0) {
                                     for (int i = 0; i <= RowCountq_quarantinemanagement; i++) {
                                         if (linenumber.equalsIgnoreCase(formObject.getNGValue("q_quarantinemanagement", i, 5))) {
-                                            System.out.println("row exist");
                                             rowExist = true;
                                             rowExistIndex = i;
                                             break;
                                         }
                                     }
                                 }
-
                                 if (rowExist) {
                                     ListViewq_quarantinemanagement.setSelectedRowIndex(rowExistIndex);
                                     formObject.ExecuteExternalCommand("NGModifyRow", "q_quarantinemanagement");
@@ -252,23 +199,23 @@ public class QualityUser implements FormListener {
                         break;
                 }
                 break;
-            case "TAB_CLICKED":
-                switch (pEvent.getSource().getName()) {
-                    case "Tab2":
-                        System.out.println("inside tab2 click");
-                        switch (pEvent.getSource().getName()) {
-                            case "Sheet1":
-                                System.out.println("inside sheet 1 click");
-                                break;
-                            case "Sheet3":
-                                System.out.println("inside sheet 3 click");
-                                break;
-                        }
 
-                        break;
-                }
-
-                break;
+//            case "TAB_CLICKED":
+//                switch (pEvent.getSource().getName()) {
+//                    case "Tab2":
+//                        System.out.println("inside tab2 click");
+//                        switch (pEvent.getSource().getName()) {
+//                            case "Sheet1":
+//                                System.out.println("inside sheet 1 click");
+//                                break;
+//                            case "Sheet3":
+//                                System.out.println("inside sheet 3 click");
+//                                break;
+//                        }
+//
+//                        break;
+//                }
+//                break;
         }
     }
 
@@ -277,10 +224,8 @@ public class QualityUser implements FormListener {
         System.out.println(" -------------------Intiation Workstep Loaded from formloaded.----------------");
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
-        formObject.setSelectedSheet("Tab2", 2);
-        formObject.setEnabled("Frame2", false);
-        try {
 
+        try {
             activityName = formObject.getWFActivityName();
             engineName = formConfig.getConfigElement("EngineName");
             sessionId = formConfig.getConfigElement("DMSSessionId");
@@ -307,122 +252,107 @@ public class QualityUser implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("----------------------Intiation Workstep Loaded from form populated.---------------------------");
-        formObject.setNGValue("qualitystatus", null);
-        formObject.setNGValue("qualityremarks", null);
-        formObject.setSheetEnable("Tab2", 0, false);
-        formObject.setSheetEnable("Tab2", 2, false);
         formObject.setSelectedSheet("Tab2", 3);
-        System.out.println("farman");
-        if (formObject.getNGValue("itemtypeflag").equalsIgnoreCase("Quarantine")) {
-            System.out.println("farman2");
-            String Query = "select linenumber,quarantinemanagement from cmplx_poline where "
-                    + "pinstanceid ='" + processInstanceId + "' and "
-                    + "linenumber in (select linenumber from cmplx_gateentryline where pinstanceid ='" + processInstanceId + "')";
+        formObject.setNGValue("qualitystatus", "");
+        formObject.setNGValue("qualityremarks", "");
+        String itemtypeflag = formObject.getNGValue("itemtypeflag");
+        if (itemtypeflag.equalsIgnoreCase("Quarantine")
+                || itemtypeflag.equalsIgnoreCase("None")) {
+            Query = "select linenumber from cmplx_invoiceline where pinstanceid ='" + processInstanceId + "'";
             result = formObject.getDataFromDataSource(Query);
             System.out.println("Query : " + Query);
-            System.out.println("result : " + result);
-
             for (int i = 0; i < result.size(); i++) {
-                String quarantine = result.get(0).get(1).toString();
-                System.out.println("quarantine : " + quarantine);
-
-                if ("1".equalsIgnoreCase(quarantine)) {
-                    System.out.println("inside if");
-                    formObject.addComboItem("Quality_linenumber", result.get(i).get(0).toString(), result.get(i).get(0).toString());
-                }
+                formObject.addComboItem("Quality_linenumber", result.get(i).get(0), result.get(i).get(0));
             }
-        } else {
-            formObject.setVisible("Frame7", false);
-        }
-        //---------- code for qatestresultmapping
-        if (formObject.getNGValue("itemtypeflag").equalsIgnoreCase("Raw Material")) {
-            System.out.println("inside qatestresultmapping ");
-            formObject.setVisible("Frame6", false);
-            formObject.setVisible("Frame7", true);
-
         }
 
+        if (itemtypeflag.equalsIgnoreCase("PP Bags")) {
+            formObject.clear("qualitystatus");
+            formObject.addComboItem("qualitystatus", "Accepted", "Accepted");
+            formObject.addComboItem("qualitystatus", "Hold", "Hold");
+        }
+
+        formObject.clear("proctype");
+        Query = "select HeadName from supplypoheadmaster order by HeadName asc";
+        System.out.println("Query is " + Query);
+        result = formObject.getDataFromDataSource(Query);
+        for (int i = 0; i < result.size(); i++) {
+            formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
+        }
     }
 
     @Override
     public void saveFormCompleted(FormEvent arg0) throws ValidatorException {
-        System.out.print("-------------------save form completed---------");
+//        System.out.print("-------------------save form completed---------");
+        formObject = FormContext.getCurrentInstance().getFormReference();
     }
 
     @Override
     public void saveFormStarted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
-        formConfig = FormContext.getCurrentInstance().getFormConfig();
 
     }
 
     @Override
     public void submitFormCompleted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
-        formConfig = FormContext.getCurrentInstance().getFormConfig();
 
     }
 
     @Override
     public void submitFormStarted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
-        formConfig = FormContext.getCurrentInstance().getFormConfig();
         objGeneral = new General();
         objAccountsGeneral = new AccountsGeneral();
-        int PPBagsCounter = 0;
-        String prevActivity = formObject.getNGValue("previousactivity");
+        String sQuery = "";
         String qualitystatus = formObject.getNGValue("qualitystatus");
         String itemtypeflag = formObject.getNGValue("itemtypeflag");
-        String qualityStatus = formObject.getNGValue("qualitystatus");
-        String qualityexception = "";
-        if (qualityStatus.equalsIgnoreCase("Exception")) {
-            qualityexception = formObject.getNGValue("qualityexception");
-        }
-        ListView ListViewq_history = (ListView) formObject.getComponent("q_transactionhistory");
-        int RowCountq_history = ListViewq_history.getRowCount();
-        System.out.println("RowCountq_history : " + RowCountq_history);
-        String qualityRemarks = formObject.getNGValue("qualityremarks");
-        objGeneral.maintainHistory(userName, activityName, qualityStatus, qualityexception, qualityRemarks, "q_transactionhistory");
-        Query = "select Name from PDBDocument where DocumentIndex in \n"
-                + "(select DocumentIndex from PDBDocumentContent where ParentFolderIndex = "
-                + "(select itemindex from ext_supplypoinvoices where processid ='" + processInstanceId + "'))";
-        result = formObject.getDataFromDataSource(Query);
-        System.out.println("second query : " + Query);
-        System.out.println("second result : " + result);
-        for (int i = 0; i < result.size(); i++) {
-            System.out.println("inside query loop");
-            if (result.get(i).get(0).equalsIgnoreCase("PPBags")) {
-                System.out.println("PPBags counter m aagya");
-                PPBagsCounter++;
-            }
-        }
-        // qualitystatus = Accepted    itemtypeflag = PP Bags
-        if (qualitystatus.equalsIgnoreCase("Accepted") && itemtypeflag.equalsIgnoreCase("PP Bags")) {
-            System.out.println("Quality PPBags m aagya ");
-            if (PPBagsCounter <= 0) {
-                System.out.println("exception m aagya PPBags");
-                throw new ValidatorException(new FacesMessage("Kindly attach PPBags Document", ""));
-            }
-        }
-// code for Quarantine table 
-        Query = "select count(*) from cmplx_gateentryline where pinstanceid ='" + processInstanceId + "'";
-        result = formObject.getDataFromDataSource(Query);
 
-        Query1 = "select count(*) from cmplx_quarantinemanagement where pinstanceid ='" + processInstanceId + "'";
-        result1 = formObject.getDataFromDataSource(Query1);
-        System.out.println("flag value : " + formObject.getNGValue("itemtypeflag").toString());
-        if ("Quarantine".equalsIgnoreCase(formObject.getNGValue("itemtypeflag").toString())) {
-            if (result.equals(result1)) {
-                System.out.println("barabar h pehle wala");
-            } else {
-                System.out.println("inside else barabar nhi h ");
-                throw new ValidatorException(new FacesMessage("Kindly Fill Quarantine Data", ""));
+        if (qualitystatus.equalsIgnoreCase("Accepted")) {
+            if (itemtypeflag.equalsIgnoreCase("PP Bags")) {
+                Query = "select count(*) from PDBDocument where name = 'PPBags' "
+                        + "and DocumentIndex in (select DocumentIndex from PDBDocumentContent where ParentFolderIndex = "
+                        + "(select itemindex from ext_supplypoinvoices where processid ='" + processInstanceId + "'))";
+                System.out.println("second query : " + Query);
+                result = formObject.getDataFromDataSource(Query);
+                if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                    throw new ValidatorException(new FacesMessage("Kindly attach PPBags Document", ""));
+                }
+                objGeneral.checkSupplyPoDoAUser("AccountsMaker");
+            }
+
+            // code for Quarantine table 
+            if ("Quarantine".equalsIgnoreCase(itemtypeflag)
+                    || "None".equalsIgnoreCase(itemtypeflag)) {
+                Query = "select count(*) from cmplx_gateentryline where pinstanceid ='" + processInstanceId + "'";
+                result = formObject.getDataFromDataSource(Query);
+
+                Query1 = "select count(*) from cmplx_quarantinemanagement where pinstanceid ='" + processInstanceId + "'";
+                result1 = formObject.getDataFromDataSource(Query1);
+
+                if (result.equals(result1)) {
+                    System.out.println("barabar h pehle wala");
+                } else {
+                    System.out.println("inside else barabar nhi h ");
+                    throw new ValidatorException(new FacesMessage("Kindly Fill Quarantine Data", ""));
+                }
+
+                if (activityName.equalsIgnoreCase("QualityMaker")) {
+                    objGeneral.checkSupplyPoDoAUser("QualityChecker");
+                } else if (activityName.equalsIgnoreCase("QualityChecker")) {
+                    objGeneral.checkSupplyPoDoAUser("AccountsMaker");
+                }
             }
         }
-
-        objAccountsGeneral.getsetSupplyPoSummary(processInstanceId);
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                qualitystatus,
+                "",
+                formObject.getNGValue("qualityremarks"),
+                "q_transactionhistory"
+        );
         formObject.setNGValue("previousactivity", activityName);
-        System.out.println("Previous Activity :" + formObject.getNGValue("previousactivity"));
     }
 
     @Override

@@ -68,12 +68,25 @@ public class Accounts implements FormListener {
 
     @Override
     public void formPopulated(FormEvent fe) {
+        System.out.println("inside formPopulated ");
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
+        objGeneral = new General();
+        System.out.println("1");
         formObject.clear("filestatus");
+        System.out.println("2");
         formObject.addComboItem("filestatus", "Approved", "Approved");
         formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
         formObject.addComboItem("filestatus", "Exception", "Exception");
+        System.out.println("3");
+        String currentdate = objGeneral.getCurrentDate();
+        System.out.println("currentdate : " + currentdate);
+        if ("".equalsIgnoreCase(formObject.getNGValue("postingdate"))) {
+            formObject.setNGValue("postingdate", currentdate);
+        }
+        if ("".equalsIgnoreCase(formObject.getNGValue("duedate"))) {
+            formObject.setNGValue("duedate", currentdate);
+        }
         try {
             Query = "select StateName from StateMaster order by StateCode asc";
             System.out.println("Query is " + Query);
@@ -100,6 +113,7 @@ public class Accounts implements FormListener {
                     "raretentionamount"
             );
 
+            formObject.setNGDateRange("postingdate", null, new Date(objGeneral.getCurrDateForRange()));
             formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
             formObject.setNGDateRange("duedate", new Date(objGeneral.getCurrDateForRange()), null);
         } catch (Exception e) {
@@ -130,70 +144,118 @@ public class Accounts implements FormListener {
         //System.out.println("level flag : " + levelflag);
         String state = formObject.getNGValue("state");
         System.out.println("State : " + state);
-        try {
-            //if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
-            //  formObject.setNGValue("nextactivity", "PurchaseUser");
-            //} else 
-            if (formObject.getNGValue("filestatus").equalsIgnoreCase("Query Raised")) {
-                Query = "select ApproverCode from RABillApproverMaster where Head = 'RABill'"
-                        + "and State = '" + formObject.getNGValue("state") + "'"
-                        + "and ApproverLevel = '0'";
-                System.out.println("Query1:" + Query);
-                result = formObject.getDataFromDataSource(Query);
-                if (result.size() > 0) {
-                    formObject.setNGValue("assignto", result.get(0).get(0));
-                } else {
-                    formObject.setNGValue("assignto", "");
-                }
-                //formObject.setNGValue("nextactivity", "Indexer");
-                // formObject.setNGValue("assignto", formObject.getNGValue("CreatedByName"));
-                formObject.setNGValue("nextactivity", "Indexer");
-                formObject.setNGValue("levelflag", "0");
-            } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Approved")) {
-                // String levelflag_ = formObject.getNGValue("levelflag");
-                if (formObject.getNGValue("levelflag").equalsIgnoreCase("Maker")) {
-                    System.out.println("inside if level flag is maker");
-                    Query = "select ApproverLevel, ApproverCode from RABillApproverMaster where  "
-                            + "head = 'RABill' "
-                            + "and state = '" + formObject.getNGValue("state") + "' "
-                            + "and approverlevel ='Checker'";
-                    System.out.println("Query " + Query);
-                    result = formObject.getDataFromDataSource(Query);
-                    if (result.size() > 0) {
-                        formObject.setNGValue("assignto", result.get(0).get(1));
-                        formObject.setNGValue("nextactivity", "Accounts");
-                        formObject.setNGValue("levelflag", "Checker");
-                    } else {
-                        formObject.setNGValue("nextactivity", "JournalPosting");
-                    }
-                } else {
-                    formObject.setNGValue("nextactivity", "JournalPosting");
-                }
-            } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
-                objGeneral.setException(userName, "Combo1", "Text69");
-                formObject.setNGValue("nextactivity", "PurchaseUser");
-            }
-            Query = "select COUNT(*) from cmplx_raitemjournal where pinstanceid = '" + processInstanceId + "'";
-            result = formObject.getDataFromDataSource(Query);
-            System.out.println("Query: " + Query);
-            System.out.println("resul: " + result);
-            int journalsyncrequired = Integer.parseInt(result.get(0).get(0));
-            System.out.println("journalsyncrequired : " + journalsyncrequired);
-            if (journalsyncrequired == 0) {
-                System.out.println("journalsyncrequired is zero hence set False");
-                formObject.setNGValue("journalsyncrequired", "False");
-            } else if (journalsyncrequired > 0) {
-                System.out.println("journalsyncrequired is greater then zero hence set True");
-                formObject.setNGValue("journalsyncrequired", "True");
-            }
+        objGeneral.compareDate(formObject.getNGValue("invoicedate"), formObject.getNGValue("postingdate"));
+//        try {
+//            //if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
+//            //  formObject.setNGValue("nextactivity", "PurchaseUser");
+//            //} else 
+//            if (formObject.getNGValue("filestatus").equalsIgnoreCase("Query Raised")) {
+//                Query = "select ApproverCode from RABillApproverMaster where Head = 'RABill'"
+//                        + "and State = '" + formObject.getNGValue("state") + "'"
+//                        + "and ApproverLevel = '0'";
+//                System.out.println("Query1:" + Query);
+//                result = formObject.getDataFromDataSource(Query);
+//                if (result.size() > 0) {
+//                    formObject.setNGValue("assignto", result.get(0).get(0));
+//                } else {
+//                    formObject.setNGValue("assignto", "");
+//                }
+//                //formObject.setNGValue("nextactivity", "Indexer");
+//                // formObject.setNGValue("assignto", formObject.getNGValue("CreatedByName"));
+//                formObject.setNGValue("nextactivity", "Indexer");
+//                formObject.setNGValue("levelflag", "0");
+//            } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Approved")) {
+//                // String levelflag_ = formObject.getNGValue("levelflag");
+//                if (formObject.getNGValue("levelflag").equalsIgnoreCase("Maker")) {
+//                    System.out.println("inside if level flag is maker");
+//                    Query = "select ApproverLevel, ApproverCode from RABillApproverMaster where  "
+//                            + "head = 'RABill' "
+//                            + "and state = '" + formObject.getNGValue("state") + "' "
+//                            + "and approverlevel ='Checker'";
+//                    System.out.println("Query " + Query);
+//                    result = formObject.getDataFromDataSource(Query);
+//                    if (result.size() > 0) {
+//                        formObject.setNGValue("assignto", result.get(0).get(1));
+//                        formObject.setNGValue("nextactivity", "Accounts");
+//                        formObject.setNGValue("levelflag", "Checker");
+//                    } else {
+//                        formObject.setNGValue("nextactivity", "JournalPosting");
+//                    }
+//                } else {
+//                    formObject.setNGValue("nextactivity", "JournalPosting");
+//                }
+//            } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
+//                objGeneral.setException(userName, "Combo1", "Text69");
+//                formObject.setNGValue("nextactivity", "PurchaseUser");
+//            }
+//            Query = "select COUNT(*) from cmplx_raitemjournal where pinstanceid = '" + processInstanceId + "'";
+//            result = formObject.getDataFromDataSource(Query);
+//            System.out.println("Query: " + Query);
+//            System.out.println("resul: " + result);
+//            int journalsyncrequired = Integer.parseInt(result.get(0).get(0));
+//            System.out.println("journalsyncrequired : " + journalsyncrequired);
+//            if (journalsyncrequired == 0) {
+//                System.out.println("journalsyncrequired is zero hence set False");
+//                formObject.setNGValue("journalsyncrequired", "False");
+//            } else if (journalsyncrequired > 0) {
+//                System.out.println("journalsyncrequired is greater then zero hence set True");
+//                formObject.setNGValue("journalsyncrequired", "True");
+//            }
+//
+//        objAccountsGeneral.getsetRABILLSummary(processInstanceId);
+//            formObject.setNGValue("previousactivity", activityName);
+//            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        String sQuery = "", nextactivity = "", strLevelFlag = "";
+        String levelflag = formObject.getNGValue("levelflag");
+        if (filestatus.equalsIgnoreCase("Approved")) {
+            Query = "select count(*) from RABillApproverMaster "
+                    + "where site = '" + formObject.getNGValue("site") + "' "
+                    + "and state = '" + formObject.getNGValue("state") + "' "
+                    + "and department = '" + formObject.getNGValue("department") + "' ";
 
-            objAccountsGeneral.getsetRABILLSummary(processInstanceId);
-            formObject.setNGValue("previousactivity", activityName);
-            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            if (levelflag.equalsIgnoreCase("Maker")) {
+                sQuery = Query + "and ApproverLevel = 'Checker' ";
+                System.out.println("Query :" + sQuery);
+                result = formObject.getDataFromDataSource(sQuery);
+                if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                    throw new ValidatorException(new FacesMessage("No Account Checker defined in the DoA."));
+                } else {
+                    strLevelFlag = "Checker";
+                    nextactivity = "Accounts";
+                }
+            } else if (levelflag.equalsIgnoreCase("Checker")) {
+                strLevelFlag = "SchedulerAccount";
+                nextactivity = "SchedulerAccount";
+            }
+        } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
+            objGeneral.setException(userName, "Combo1", "Text69");
+            formObject.setNGValue("nextactivity", "PurchaseUser");
         }
+        objAccountsGeneral.getsetRABILLSummary(processInstanceId);
+        Query = "select COUNT(*) from cmplx_raitemjournal where pinstanceid = '" + processInstanceId + "'";
+        result = formObject.getDataFromDataSource(Query);
+        System.out.println("Query: " + Query);
+        System.out.println("resul: " + result);
+        int journalsyncrequired = Integer.parseInt(result.get(0).get(0));
+        System.out.println("journalsyncrequired : " + journalsyncrequired);
+        if (journalsyncrequired == 0) {
+            System.out.println("journalsyncrequired is zero hence set False");
+            formObject.setNGValue("journalsyncrequired", "False");
+        } else if (journalsyncrequired > 0) {
+            System.out.println("journalsyncrequired is greater then zero hence set True");
+            formObject.setNGValue("journalsyncrequired", "True");
+        }
+        formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
+        formObject.setNGValue("levelflag", strLevelFlag);
+        formObject.setNGValue("nextactivity", nextactivity);
+        formObject.setNGValue("previousactivity", activityName);
+        
+        
+        objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
 
     }
 
@@ -278,11 +340,53 @@ public class Accounts implements FormListener {
                         System.out.println("RCM amount: " + rcmamount);
                         formObject.setNGValue("qratd_reversechargeamount", rcmamount);
                         break;
+
+                    case "qratd_gstratetype":
+                        if (formObject.getNGValue("qratd_gstratetype").equalsIgnoreCase("RCM")) {
+                            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
+                                    formObject.getNGValue("qratd_hsnsactype"),
+                                    formObject.getNGValue("qratd_hsnsaccode"),
+                                    formObject.getNGValue("qratd_taxcomponent"),
+                                    "Vendor",
+                                    formObject.getNGValue("contractor")
+                            );
+                            String reversechargeamount = objCalculations.calculatePercentAmount(
+                                    formObject.getNGValue("qratd_taxamount"),
+                                    reversechargerate
+                            );
+                            formObject.setNGValue("qratd_reversechargepercent", reversechargerate);
+                            formObject.setNGValue("qratd_reversechargeamount", reversechargeamount);
+                        } else {
+                            formObject.setNGValue("qratd_reversechargepercent", "0.00");
+                            formObject.setNGValue("qratd_reversechargeamount", "0.00");
+                        }
+                        break;
+
                 }
                 break;
 
             case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
+                    case "qratd_exempt":
+                        String exempt = formObject.getNGValue("qratd_exempt");
+                        if (exempt.equalsIgnoreCase("true")) {
+                            formObject.setNGValue("qratd_taxamount", "0");
+                            formObject.setNGValue("qratd_taxamountadjustment", "0");
+                        } else {
+                            String Query = "select projectdebitamount from cmplx_linejournal where "
+                                    + "pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "' "
+                                    + "and projectcode = '" + formObject.getNGValue("qratd_projectcode") + "'";
+                            System.out.println("Query :" + Query);
+                            String taxamount = objCalculations.calculatePercentAmount(
+                                    formObject.getDataFromDataSource(Query).get(0).get(0),
+                                    formObject.getNGValue("qratd_taxrate")
+                            );
+                            formObject.setNGValue("qratd_taxamount", taxamount);
+                            formObject.setNGValue("qratd_taxamountadjustment", taxamount);
+
+                        }
+                        break;
+                        
                     case "Btn_Modify_Taxdocument":
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_taxdocument");
                         break;
@@ -374,6 +478,7 @@ public class Accounts implements FormListener {
                         System.out.println("Query is " + Query);
                         objPicklistListenerHandler.openPickList("q_ljtefrid", "TEFRId,TEFRLineItemId", "TEFRId Master", 70, 70, Query);
                         break;
+
                 }
                 break;
 

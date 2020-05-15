@@ -9,6 +9,7 @@ import com.newgen.common.General;
 import com.newgen.common.ReadProperty;
 import com.newgen.omniforms.FormReference;
 import com.newgen.omniforms.context.FormContext;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.faces.application.FacesMessage;
@@ -27,6 +28,9 @@ public class CallVebndorService {
     ReadProperty objReadProperty = null;
     ServiceConnection objServiceConnection = null;
     String webserviceStatus;
+    private List<List<String>> result;
+    private String outputJSON;
+    private String Query;
 
     public void GetSetPrePaymentLines(String AccessToken, String VendorCode) {
         formObject = FormContext.getCurrentInstance().getFormReference();
@@ -36,7 +40,7 @@ public class CallVebndorService {
         try {
             request_json.put("_vendAccount", VendorCode);
 
-            String outputJSON = objServiceConnection.callBearerAuthWebService(
+            outputJSON = objServiceConnection.callBearerAuthWebService(
                     AccessToken,
                     objReadProperty.getValue("getVendorData"),
                     request_json.toString().trim()
@@ -55,12 +59,23 @@ public class CallVebndorService {
     public String parseVendorOutputJSON(String content) throws JSONException {
         formObject = FormContext.getCurrentInstance().getFormReference();
         JSONObject objJSONObject = new JSONObject(content);
-        //Check webservice IsSuccess status
+        String payment_termid;
+//Check webservice IsSuccess status
         String IsSuccess = objJSONObject.optString("IsSucceess");
         String ErrorMessage = objJSONObject.optString("ErrorMessage");
         System.out.println("IsSuccess : " + IsSuccess);
         System.out.println("ErrorMessage :call purchase order :" + ErrorMessage);
         if (IsSuccess.equalsIgnoreCase("true")) {
+
+            payment_termid = objJSONObject.optString("PaymTermId");
+            Query = "Select PaymentTermDesc from PaymentTermMaster where PaymentTermCode = '"+payment_termid+"'";
+            result = formObject.getDataFromDataSource(Query);
+            if(result.size()>0){
+                formObject.setNGValue("paymentterm", payment_termid+"-"+result.get(0).get(0));
+            }
+            else{
+                formObject.setNGValue("paymentterm", "");
+            }
 
             return IsSuccess;
         } else {

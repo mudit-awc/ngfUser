@@ -13,6 +13,7 @@ import com.newgen.omniforms.util.Constant.EVENT;
 import com.newgen.omniforms.util.OFUtility;
 import java.awt.Color;
 import java.awt.Font;
+import java.math.BigDecimal;
 import java.util.List;
 
 @SuppressWarnings("serial")
@@ -56,7 +57,9 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         Form obj = (Form) FormContext.getCurrentInstance().getFormReference();
         controlName = m_objPickList.getAssociatedTxtCtrl();
         TextBox comp = (TextBox) obj.getComponent(controlName);
-        if (controlName.equalsIgnoreCase("q_sb_registrationno") || controlName.equalsIgnoreCase("department")) {
+        if (controlName.equalsIgnoreCase("q_sb_registrationno")
+                || controlName.equalsIgnoreCase("department")
+                || controlName.equalsIgnoreCase("purchaseorderno")) {
             index = 0;
         } else if (controlName.equalsIgnoreCase("qoc_linenumber")) {
             index = 2;
@@ -79,10 +82,22 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("paymenttermcode", m_objPickList.getSelectedValue().get(0));
             comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
         }
+        if (controlName.equalsIgnoreCase("departmentdsc")) {
+            System.out.println("inside departmentdsc button ok");
+            formObject.setNGValue("department", m_objPickList.getSelectedValue().get(0));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+        }
+
         if (controlName.equalsIgnoreCase("department")) {
             System.out.println("inside button ok of department");
             formObject.setNGValue("department", m_objPickList.getSelectedValue().get(0));
             comp.setValue(m_objPickList.getSelectedValue().get(0));
+            OFUtility.render(comp);
+        }
+
+        if (controlName.equalsIgnoreCase("fd_departmentdescription")) {
+            formObject.setNGValue("fd_department", m_objPickList.getSelectedValue().get(0));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
@@ -99,7 +114,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                 formObject.setNGValue("q_ledgertdspercent", result.get(0).get(0));
                 String calculatedValue = objCalculations.calculatePercentAmount(q_ledgeradjustedoriginamount, result.get(0).get(0));
                 formObject.setNGValue("q_ledgertdsamount", calculatedValue);
-                formObject.setNGValue("q_ledgeradjustmenttdsamount", calculatedValue);
+                formObject.setNGValue("q_ledgeradjustmenttdsamount", new BigDecimal(calculatedValue).setScale(0, BigDecimal.ROUND_HALF_UP));
             }
 
             System.out.println("q_ledgertdsgroupcode: " + formObject.getNGValue("q_ledgertdsgroupcode"));
@@ -115,6 +130,38 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("accountname", m_objPickList.getSelectedValue().get(1));
             comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
+
+            query = "select MSMEType,PaymentTerm from VendorMaster where VendorCode='" + formObject.getNGValue("accountcode") + "'";
+            result = formObject.getDataFromDataSource(query);
+            if (result.size() > 0) {
+                formObject.setNGValue("msmestatus", result.get(0).get(0));
+                formObject.setNGValue("paymentterm", result.get(0).get(1));
+            } else {
+                formObject.setNGValue("msmestatus", "");
+                formObject.setNGValue("paymentterm", "");
+            }
+
+            //code for vendor location tab       
+            String vendorloc = formObject.getNGValue("vendorlocation");
+            System.out.println("Vendor Loc: " + vendorloc);
+            query = "select AddressId, StateName, Address, GSTINNumber, AddressName "
+                    + "from AddressMaster where PartyCode ='" + formObject.getNGValue("accountcode") + "'";
+            System.out.println("Query for Vendor" + query);
+            result = formObject.getDataFromDataSource(query);
+            System.out.println("result for vendor is " + result);
+            if (result.size() > 0) {
+                formObject.setNGValue("vendorlocation", result.get(0).get(0));
+                formObject.setNGValue("vendorstate", result.get(0).get(1));
+                formObject.setNGValue("vendoraddress", result.get(0).get(2));
+                formObject.setNGValue("vendorgstingdiuid", result.get(0).get(3));
+                formObject.setNGValue("vendortaxinformation", result.get(0).get(4));
+            } else {
+                formObject.setNGValue("vendorlocation", "");
+                formObject.setNGValue("vendorstate", "");
+                formObject.setNGValue("vendoraddress", "");
+                formObject.setNGValue("vendorgstingdiuid", "");
+                formObject.setNGValue("vendortaxinformation", "");
+            }
         }
         if (controlName.equalsIgnoreCase("qtd_hsnsacdescription")) {
             formObject.setNGValue("qtd_hsnsaccode", m_objPickList.getSelectedValue().get(0));
@@ -128,76 +175,55 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             String Query = "select amount from cmplx_ledgerlinedetails where "
                     + "pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "' "
                     + "and ledgeraccount = '" + formObject.getNGValue("qtd_ledgeraccount") + "'";
+            System.out.println("Query :" + Query);
             String taxamount = objCalculations.calculatePercentAmount(
                     formObject.getDataFromDataSource(Query).get(0).get(0),
                     HSNSACRate
             );
             formObject.setNGValue("qtd_taxamount", taxamount);
             formObject.setNGValue("qtd_taxamountadjustment", taxamount);
-
-            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
-                    formObject.getNGValue("qtd_hsnsactype"),
-                    formObject.getNGValue("qtd_hsnsaccode"),
-                    formObject.getNGValue("qtd_taxcomponent"),
-                    formObject.getNGValue("accounttype"),
-                    formObject.getNGValue("accountcode")
-            );
-            String reversechargeamount = objCalculations.calculatePercentAmount(
-                    taxamount,
-                    reversechargerate
-            );
-            formObject.setNGValue("qtd_reversechargepercent", reversechargerate);
-            formObject.setNGValue("qtd_reversechargeamount", reversechargeamount);
+            formObject.setNGValue("qtd_reversechargepercent", "0");
+            formObject.setNGValue("qtd_reversechargeamount", "0");
+            formObject.setNGValue("qtd_gstratetype", "None");
+//            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
+//                    formObject.getNGValue("qtd_hsnsactype"),
+//                    formObject.getNGValue("qtd_hsnsaccode"),
+//                    formObject.getNGValue("qtd_taxcomponent"),
+//                    formObject.getNGValue("accounttype"),
+//                    formObject.getNGValue("accountcode")
+//            );
+//            String reversechargeamount = objCalculations.calculatePercentAmount(
+//                    taxamount,
+//                    reversechargerate
+//            );
+//            formObject.setNGValue("qtd_reversechargepercent", reversechargerate);
+//            formObject.setNGValue("qtd_reversechargeamount", reversechargeamount);
 
             if (formObject.getNGValue("qtd_hsnsactype").equalsIgnoreCase("HSN")) {
-                Query = "select CGSTLOIPerc,SGSTLOIPerc,IGSTLOIPerc from HSNRateMaster where hsncode = '" + formObject.getNGValue("qtd_hsnsaccode") + "'";
+                Query = "select COALESCE(CGSTLOIPerc,0.00),COALESCE(SGSTLOIPerc,0.00),COALESCE(IGSTLOIPerc,0.00) from HSNRateMaster where hsncode = '" + formObject.getNGValue("qtd_hsnsaccode") + "'";
 
             } else if (formObject.getNGValue("qtd_hsnsactype").equalsIgnoreCase("SAC")) {
-                Query = "select CGSTLOIPerc,SGSTLOIPerc,IGSTLOIPerc from SACRateMaster where saccode = '" + formObject.getNGValue("qtd_hsnsaccode") + "'";
+                Query = "select COALESCE(CGSTLOIPerc,0.00),COALESCE(SGSTLOIPerc,0.00),COALESCE(IGSTLOIPerc,0.00) from SACRateMaster where saccode = '" + formObject.getNGValue("qtd_hsnsaccode") + "'";
             }
             System.out.println("Query: " + Query);
             result = formObject.getDataFromDataSource(Query);
             if (result.size() > 0) {
                 if (formObject.getNGValue("qtd_taxcomponent").equalsIgnoreCase("CGST")
-                        && ("0.00".equalsIgnoreCase(result.get(0).get(0))
-                        || "0.0".equalsIgnoreCase(result.get(0).get(0))
-                        || "0".equalsIgnoreCase(result.get(0).get(0))
-                        || null == result.get(0).get(0)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(0))
-                        || "Null".equalsIgnoreCase(result.get(0).get(0)))) {
-                    formObject.setNGValue("qtd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qtd_nonbusinessusagepercent", true);
-                } else {
+                        && !"0.00".equalsIgnoreCase(result.get(0).get(0))) {
+                    System.out.println("Inside CGST");
                     formObject.setNGValue("qtd_nonbusinessusagepercent", result.get(0).get(0));
-                }
-
-                if (formObject.getNGValue("qtd_taxcomponent").equalsIgnoreCase("SGST")
-                        && ("0.00".equalsIgnoreCase(result.get(0).get(1))
-                        || "0.0".equalsIgnoreCase(result.get(0).get(1))
-                        || "0".equalsIgnoreCase(result.get(0).get(1))
-                        || null == result.get(0).get(1)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(1))
-                        || "Null".equalsIgnoreCase(result.get(0).get(1)))) {
-                    System.out.println("Inside if and setting true");
-                    formObject.setNGValue("qtd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qtd_nonbusinessusagepercent", true);
-                } else {
-                    System.out.println("Inside else");
+                } else if (formObject.getNGValue("qtd_taxcomponent").equalsIgnoreCase("SGST")
+                        && !("0.00".equalsIgnoreCase(result.get(0).get(1)))) {
+                    System.out.println("Inside SGST");
                     formObject.setNGValue("qtd_nonbusinessusagepercent", result.get(0).get(1));
-                }
-
-                if (formObject.getNGValue("qtd_taxcomponent").equalsIgnoreCase("IGST")
-                        && (!"0.00".equalsIgnoreCase(result.get(0).get(2))
-                        || !"0.0".equalsIgnoreCase(result.get(0).get(2))
-                        || !"0".equalsIgnoreCase(result.get(0).get(2))
-                        || null == result.get(0).get(2)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(2))
-                        || "Null".equalsIgnoreCase(result.get(0).get(2)))) {
-                    formObject.setNGValue("qtd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qtd_nonbusinessusagepercent", true);
+                } else if (formObject.getNGValue("qtd_taxcomponent").equalsIgnoreCase("IGST")
+                        && !"0.00".equalsIgnoreCase(result.get(0).get(2))) {
+                    System.out.println("Inside IGST");
+                    formObject.setNGValue("qtd_nonbusinessusagepercent", result.get(0).get(2));
                 } else {
                     System.out.println("Inside else");
-                    formObject.setNGValue("qtd_nonbusinessusagepercent", result.get(0).get(2));
+                    formObject.setNGValue("qtd_nonbusinessusagepercent", "0.00");
+                    formObject.setEnabled("qtd_nonbusinessusagepercent", true);
                 }
             }
         }
@@ -213,12 +239,16 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("vendoraddress", m_objPickList.getSelectedValue().get(3));
             formObject.setNGValue("vendorgstingdiuid", m_objPickList.getSelectedValue().get(2));
             formObject.setNGValue("vendortaxinformation", m_objPickList.getSelectedValue().get(4));
+            new AccountsGeneral().refreshTaxDocument(formConfig.getConfigElement("ProcessInstanceId"));
+            formObject.RaiseEvent("WFSave");
         }
 
         if (controlName.equalsIgnoreCase("customerlocation")) {
             formObject.setNGValue("customerstate", m_objPickList.getSelectedValue().get(0));
             formObject.setNGValue("customeraddress", m_objPickList.getSelectedValue().get(2));
             formObject.setNGValue("customertaxinformation", m_objPickList.getSelectedValue().get(3));
+            new AccountsGeneral().refreshTaxDocument(formConfig.getConfigElement("ProcessInstanceId"));
+            formObject.RaiseEvent("WFSave");
         }
 
         if (controlName.equalsIgnoreCase("q_ledgerbusinessunit")) {
@@ -310,6 +340,28 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         }
 
         /*Controls for Process Name: Supply PO Invoice*/
+        if (controlName.equalsIgnoreCase("purchaseorderno")) {
+            query = "select purchaseorderdate, suppliercode,suppliername,businessunit,site,state,department,currency,"
+                    + "deliveryterm,msmestatus,paymentterm,compositescheme,purchasestatus from "
+                    + "ext_supplypoinvoices where purchaseorderno = '" + m_objPickList.getSelectedValue().get(0) + "' "
+                    + "order by itemindex desc";
+            System.out.println("query :" + query);
+            result = formObject.getDataFromDataSource(query);
+            formObject.setNGValue("purchaseorderdate", result.get(0).get(0));
+            formObject.setNGValue("suppliercode", result.get(0).get(1));
+            formObject.setNGValue("suppliername", result.get(0).get(2));
+            formObject.setNGValue("businessunit", result.get(0).get(3));
+            formObject.setNGValue("site", result.get(0).get(4));
+            formObject.setNGValue("state", result.get(0).get(5));
+            formObject.setNGValue("department", result.get(0).get(6));
+            formObject.setNGValue("currency", result.get(0).get(7));
+            formObject.setNGValue("deliveryterm", result.get(0).get(8));
+            formObject.setNGValue("msmestatus", result.get(0).get(9));
+            formObject.setNGValue("paymentterm", result.get(0).get(10));
+            formObject.setNGValue("compositescheme", result.get(0).get(11));
+            formObject.setNGValue("purchasestatus", result.get(0).get(12));
+        }
+
         /*Controls for Process Name: RA Bills*/
 //         if (controlName.equalsIgnoreCase("vendorlocation")) {
 //            formObject.setNGValue("vendorstate", m_objPickList.getSelectedValue().get(0));
@@ -397,71 +449,46 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("qratd_taxamount", taxamount);
             formObject.setNGValue("qratd_taxamountadjustment", taxamount);
 
-            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
-                    formObject.getNGValue("qratd_hsnsactype"),
-                    formObject.getNGValue("qratd_hsnsaccode"),
-                    formObject.getNGValue("qratd_taxcomponent"),
-                    "Vendor",
-                    formObject.getNGValue("contractor")
-            );
-            String reversechargeamount = objCalculations.calculatePercentAmount(
-                    taxamount,
-                    reversechargerate
-            );
-            formObject.setNGValue("qratd_reversechargepercent", reversechargerate);
-            formObject.setNGValue("qratd_reversechargeamount", reversechargeamount);
-
+//            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
+//                    formObject.getNGValue("qratd_hsnsactype"),
+//                    formObject.getNGValue("qratd_hsnsaccode"),
+//                    formObject.getNGValue("qratd_taxcomponent"),
+//                    "Vendor",
+//                    formObject.getNGValue("contractor")
+//            );
+//            String reversechargeamount = objCalculations.calculatePercentAmount(
+//                    taxamount,
+//                    reversechargerate
+//            );
+//            formObject.setNGValue("qratd_reversechargepercent", reversechargerate);
+//            formObject.setNGValue("qratd_reversechargeamount", reversechargeamount);
             if (formObject.getNGValue("qratd_hsnsactype").equalsIgnoreCase("HSN")) {
-                Query = "select CGSTLOIPerc,SGSTLOIPerc,IGSTLOIPerc from HSNRateMaster "
-                        + "where hsncode = '" + formObject.getNGValue("qratd_hsnsaccode") + "'";
+                Query = "select COALESCE(CGSTLOIPerc,0.00),COALESCE(SGSTLOIPerc,0.00),COALESCE(IGSTLOIPerc,0.00) "
+                        + "from HSNRateMaster where hsncode = '" + formObject.getNGValue("qratd_hsnsaccode") + "'";
 
             } else if (formObject.getNGValue("qratd_hsnsactype").equalsIgnoreCase("SAC")) {
-                Query = "select CGSTLOIPerc,SGSTLOIPerc,IGSTLOIPerc from SACRateMaster "
-                        + "where saccode = '" + formObject.getNGValue("qratd_hsnsaccode") + "'";
+                Query = "select COALESCE(CGSTLOIPerc,0.00),COALESCE(SGSTLOIPerc,0.00),COALESCE(IGSTLOIPerc,0.00) "
+                        + "from SACRateMaster where saccode = '" + formObject.getNGValue("qratd_hsnsaccode") + "'";
             }
             System.out.println("Query: " + Query);
             result = formObject.getDataFromDataSource(Query);
             if (result.size() > 0) {
                 if (formObject.getNGValue("qratd_taxcomponent").equalsIgnoreCase("CGST")
-                        && ("0.00".equalsIgnoreCase(result.get(0).get(0))
-                        || "0.0".equalsIgnoreCase(result.get(0).get(0))
-                        || "0".equalsIgnoreCase(result.get(0).get(0))
-                        || null == result.get(0).get(0)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(0))
-                        || "Null".equalsIgnoreCase(result.get(0).get(0)))) {
-                    formObject.setNGValue("qratd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qratd_nonbusinessusagepercent", true);
-                } else {
+                        && !"0.00".equalsIgnoreCase(result.get(0).get(0))) {
+                    System.out.println("Inside CGST");
                     formObject.setNGValue("qratd_nonbusinessusagepercent", result.get(0).get(0));
-                }
-
-                if (formObject.getNGValue("qratd_taxcomponent").equalsIgnoreCase("SGST")
-                        && ("0.00".equalsIgnoreCase(result.get(0).get(1))
-                        || "0.0".equalsIgnoreCase(result.get(0).get(1))
-                        || "0".equalsIgnoreCase(result.get(0).get(1))
-                        || null == result.get(0).get(1)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(1))
-                        || "Null".equalsIgnoreCase(result.get(0).get(1)))) {
-                    System.out.println("Inside if and setting true");
-                    formObject.setNGValue("qratd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qratd_nonbusinessusagepercent", true);
-                } else {
-                    System.out.println("Inside else");
+                } else if (formObject.getNGValue("qratd_taxcomponent").equalsIgnoreCase("SGST")
+                        && !("0.00".equalsIgnoreCase(result.get(0).get(1)))) {
+                    System.out.println("Inside SGST");
                     formObject.setNGValue("qratd_nonbusinessusagepercent", result.get(0).get(1));
-                }
-
-                if (formObject.getNGValue("qratd_taxcomponent").equalsIgnoreCase("IGST")
-                        && (!"0.00".equalsIgnoreCase(result.get(0).get(2))
-                        || !"0.0".equalsIgnoreCase(result.get(0).get(2))
-                        || !"0".equalsIgnoreCase(result.get(0).get(2))
-                        || null == result.get(0).get(2)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(2))
-                        || "Null".equalsIgnoreCase(result.get(0).get(2)))) {
-                    formObject.setNGValue("qratd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qratd_nonbusinessusagepercent", true);
+                } else if (formObject.getNGValue("qratd_taxcomponent").equalsIgnoreCase("IGST")
+                        && !"0.00".equalsIgnoreCase(result.get(0).get(2))) {
+                    System.out.println("Inside IGST");
+                    formObject.setNGValue("qratd_nonbusinessusagepercent", result.get(0).get(2));
                 } else {
                     System.out.println("Inside else");
-                    formObject.setNGValue("qratd_nonbusinessusagepercent", result.get(0).get(2));
+                    formObject.setNGValue("qratd_nonbusinessusagepercent", "0.00");
+                    formObject.setEnabled("qratd_nonbusinessusagepercent", true);
                 }
             }
         }
@@ -484,71 +511,47 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("qoftd_taxamount", taxamount);
             formObject.setNGValue("qoftd_taxamountadjustment", taxamount);
 
-            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
-                    formObject.getNGValue("qoftd_hsnsactype"),
-                    formObject.getNGValue("qoftd_hsnsaccode"),
-                    formObject.getNGValue("qoftd_taxcomponent"),
-                    formObject.getNGValue("accounttype"),
-                    formObject.getNGValue("accountcode")
-            );
-            String reversechargeamount = objCalculations.calculatePercentAmount(
-                    formObject.getDataFromDataSource(Query).get(0).get(0),
-                    reversechargerate
-            );
-            formObject.setNGValue("qoftd_reversechargepercent", reversechargerate);
-            formObject.setNGValue("qoftd_reversechargeamount", reversechargeamount);
-
+//            String reversechargerate = new AccountsGeneral().getReverseChargeRate(
+//                    formObject.getNGValue("qoftd_hsnsactype"),
+//                    formObject.getNGValue("qoftd_hsnsaccode"),
+//                    formObject.getNGValue("qoftd_taxcomponent"),
+//                    formObject.getNGValue("accounttype"),
+//                    formObject.getNGValue("accountcode")
+//            );
+//            String reversechargeamount = objCalculations.calculatePercentAmount(
+//                    formObject.getDataFromDataSource(Query).get(0).get(0),
+//                    reversechargerate
+//            );
+//            formObject.setNGValue("qoftd_reversechargepercent", reversechargerate);
+//            formObject.setNGValue("qoftd_reversechargeamount", reversechargeamount);
             if (formObject.getNGValue("qoftd_hsnsactype").equalsIgnoreCase("HSN")) {
-                Query = "select CGSTLOIPerc,SGSTLOIPerc,IGSTLOIPerc from HSNRateMaster "
-                        + "where hsncode = '" + formObject.getNGValue("qoftd_hsnsaccode") + "'";
+                Query = "select COALESCE(CGSTLOIPerc,0.00),COALESCE(SGSTLOIPerc,0.00)"
+                        + ",COALESCE(IGSTLOIPerc,0.00) from HSNRateMaster where hsncode = '" + formObject.getNGValue("qoftd_hsnsaccode") + "'";
 
             } else if (formObject.getNGValue("qoftd_hsnsactype").equalsIgnoreCase("SAC")) {
-                Query = "select CGSTLOIPerc,SGSTLOIPerc,IGSTLOIPerc from SACRateMaster "
-                        + "where saccode = '" + formObject.getNGValue("qoftd_hsnsaccode") + "'";
+               Query = "select COALESCE(CGSTLOIPerc,0.00),COALESCE(SGSTLOIPerc,0.00)"
+                       + ",COALESCE(IGSTLOIPerc,0.00) from SACRateMaster where saccode = '" + formObject.getNGValue("qoftd_hsnsaccode") + "'";
             }
             System.out.println("Query: " + Query);
             result = formObject.getDataFromDataSource(Query);
             if (result.size() > 0) {
                 if (formObject.getNGValue("qoftd_taxcomponent").equalsIgnoreCase("CGST")
-                        && ("0.00".equalsIgnoreCase(result.get(0).get(0))
-                        || "0.0".equalsIgnoreCase(result.get(0).get(0))
-                        || "0".equalsIgnoreCase(result.get(0).get(0))
-                        || null == result.get(0).get(0)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(0))
-                        || "Null".equalsIgnoreCase(result.get(0).get(0)))) {
-                    formObject.setNGValue("qoftd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qoftd_nonbusinessusagepercent", true);
-                } else {
-                    formObject.setNGValue("qoftd_nonbusinessusagepercent", result.get(0).get(0));
-                }
-
-                if (formObject.getNGValue("qoftd_taxcomponent").equalsIgnoreCase("SGST")
-                        && ("0.00".equalsIgnoreCase(result.get(0).get(1))
-                        || "0.0".equalsIgnoreCase(result.get(0).get(1))
-                        || "0".equalsIgnoreCase(result.get(0).get(1))
-                        || null == result.get(0).get(1)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(1))
-                        || "Null".equalsIgnoreCase(result.get(0).get(1)))) {
+                        && !"0.00".equalsIgnoreCase(result.get(0).get(0))) {
+                    formObject.setNGValue("qoftd_nonbusinessusagepercent",result.get(0).get(0));
+                    
+                } else if (formObject.getNGValue("qoftd_taxcomponent").equalsIgnoreCase("SGST")
+                        && !("0.00".equalsIgnoreCase(result.get(0).get(1)))) {
                     System.out.println("Inside if and setting true");
-                    formObject.setNGValue("qoftd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qoftd_nonbusinessusagepercent", true);
-                } else {
-                    System.out.println("Inside else");
                     formObject.setNGValue("qoftd_nonbusinessusagepercent", result.get(0).get(1));
-                }
-
-                if (formObject.getNGValue("qoftd_taxcomponent").equalsIgnoreCase("IGST")
-                        && (!"0.00".equalsIgnoreCase(result.get(0).get(2))
-                        || !"0.0".equalsIgnoreCase(result.get(0).get(2))
-                        || !"0".equalsIgnoreCase(result.get(0).get(2))
-                        || null == result.get(0).get(2)
-                        || "NULL".equalsIgnoreCase(result.get(0).get(2))
-                        || "Null".equalsIgnoreCase(result.get(0).get(2)))) {
-                    formObject.setNGValue("qoftd_nonbusinessusagepercent", "");
-                    formObject.setEnabled("qoftd_nonbusinessusagepercent", true);
+                   
+                } else if (formObject.getNGValue("qoftd_taxcomponent").equalsIgnoreCase("IGST")
+                        && !(!"0.00".equalsIgnoreCase(result.get(0).get(2)))) {
+                    formObject.setNGValue("qoftd_nonbusinessusagepercent", result.get(0).get(2));
+                  
                 } else {
                     System.out.println("Inside else");
-                    formObject.setNGValue("qoftd_nonbusinessusagepercent", result.get(0).get(2));
+                    formObject.setNGValue("qoftd_nonbusinessusagepercent", "0.00");
+                     formObject.setEnabled("qoftd_nonbusinessusagepercent", true);
                 }
             }
         }
@@ -581,8 +584,8 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("qoc_linenumber", m_objPickList.getSelectedValue().get(0));
             formObject.setNGValue("qoc_itemnumber", m_objPickList.getSelectedValue().get(1));
             formObject.setNGValue("qoc_ponumber", m_objPickList.getSelectedValue().get(2));
-           // comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1) + "-" + m_objPickList.getSelectedValue().get(2));
-          //  OFUtility.render(comp);
+            // comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1) + "-" + m_objPickList.getSelectedValue().get(2));
+            //  OFUtility.render(comp);
         }
 
     }
@@ -644,6 +647,15 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                 query = "select AccountId,Description from LedgerACMaster order by AccountId asc";
             }
         }
+        if (controlName.equalsIgnoreCase("departmentdsc")) {
+            if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
+                query = "select value,description from department where "
+                        + "upper(value) like '%" + filter_value.trim().toUpperCase() + "%' "
+                        + "or upper(description) like '%" + filter_value.trim().toUpperCase() + "%'";
+            } else {
+                query = "select value,description from department order by description asc";
+            }
+        }
 
         if (controlName.equalsIgnoreCase("q_ledgerbusinessunit")) {
             if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
@@ -682,6 +694,15 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                         + "or upper(Description) like '%" + filter_value.trim().toUpperCase() + "%'";
             } else {
                 query = "select Value,Description from GLAMaster order by Value asc";
+            }
+        }
+        if (controlName.equalsIgnoreCase("fd_departmentdescription")) {
+            if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
+                query = "select Value,Description from department where "
+                        + "upper(Value) like '%" + filter_value.trim().toUpperCase() + "%' "
+                        + "or upper(Description) like '%" + filter_value.trim().toUpperCase() + "%'";
+            } else {
+                query = "select Value,Description from department order by description asc";
             }
         }
 
@@ -750,8 +771,8 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                     query = "select SACCode,Description from SACMaster order by SACCode asc";
                     System.out.println("query :" + query);
                 }
-
             }
+
         }
         if (controlName.equalsIgnoreCase("qoftd_hsnsacdescription")) {
             String hsnsaccodetype = formObject.getNGValue("qoftd_hsnsactype");
@@ -928,10 +949,11 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             }
         } else if (controlName.equalsIgnoreCase("q_sb_registrationno")) {
             if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
-                query = "select distinct registrationno from cmplx_serialbatchregistration where upper(registrationno) "
+                //query = "select distinct registrationno from cmplx_serialbatchregistration where upper(registrationno) "
+                query = "select distinct registrationno from cmplx_serialbatchregistration where registrationtype = '" + formObject.getNGValue("q_sb_registrationtype") + "' and itemid = '" + formObject.getNGValue("q_sb_itemno") + "' and upper(registrationno) "
                         + "like '%" + filter_value.trim().toUpperCase() + "%'";
             } else {
-                query = "select distinct registrationno from cmplx_serialbatchregistration order by registrationno asc";
+                query = "select distinct registrationno from cmplx_serialbatchregistration where registrationtype = '" + formObject.getNGValue("q_sb_registrationtype") + "' and itemid = '" + formObject.getNGValue("q_sb_itemno") + "' order by registrationno asc";
             }
         } else if (controlName.equalsIgnoreCase("vendorlocation")) {
             String vendorcodefieldid = "";
@@ -954,8 +976,10 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
                 query = "select StateName,AddressId,Address,AddressName from AddressMaster "
                         + "where AddressType = 'Company' "
-                        + "and upper(AddressId) like '%" + filter_value.trim().toUpperCase() + "%' "
-                        + "or upper(AddressName) like '%" + filter_value.trim().toUpperCase() + "%'";
+                        + "and upper(StateName) like '%" + filter_value.trim().toUpperCase() + "%' "
+                        + "or upper(AddressId) like '%" + filter_value.trim().toUpperCase() + "%'";
+
+                System.out.println("Query customerlocation:::" + query);
             } else {
                 query = "select StateName,AddressId,Address,AddressName from AddressMaster where AddressType = 'Company' ";
             }
