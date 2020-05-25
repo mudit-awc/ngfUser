@@ -158,8 +158,7 @@ public class Initiator implements FormListener {
                             ListView LVq_multiplepo = (ListView) formObject.getComponent("q_multiplepo");
                             int selectedrowq_multiplepo = LVq_multiplepo.getSelectedRowIndex();
                             String multiposelected = formObject.getNGValue("q_multiplepo", selectedrowq_multiplepo, 0);
-                            ListView LVq_polinedetails = (ListView) formObject.getComponent("q_polinedetails");
-                            int RCq_polinedetails = LVq_polinedetails.getRowCount();
+                            int RCq_polinedetails = formObject.getLVWRowCount("q_polinedetails");
                             ArrayList<Integer> q_polinedetailsindexesarr = new ArrayList<Integer>();
 
                             for (int i = 0; i <= RCq_polinedetails; i++) {
@@ -184,8 +183,7 @@ public class Initiator implements FormListener {
                                 q_polinedetailsindexes[k] = q_polinedetailsindexesarr.get(k);
                             }
 
-                            ListView LVq_linechargesdetails = (ListView) formObject.getComponent("q_linechargesdetails");
-                            int RCq_linechargesdetails = LVq_linechargesdetails.getRowCount();
+                            int RCq_linechargesdetails = formObject.getLVWRowCount("q_linechargesdetails");
                             ArrayList<Integer> q_linechargesdetailsindexesarr = new ArrayList<Integer>();
 
                             for (int j = 0; j <= RCq_linechargesdetails; j++) {
@@ -213,30 +211,14 @@ public class Initiator implements FormListener {
                         break;
 
                     case "Btn_Delete_Invoice":
-                        ListView ListViewq_invoicedetails_del = (ListView) formObject.getComponent("q_invoicedetails");
-                        int rowCount_del = ListViewq_invoicedetails_del.getRowCount();
-                        int rowcount2_del = formObject.getNGListIndex("q_invoicedetails");
-                        System.out.println("Row count2 before delete: " + rowcount2_del);
-                        System.out.println("Row count before delete: " + rowCount_del);
-
                         formObject.ExecuteExternalCommand("NGDeleteRow", "q_invoicedetails");
                         formObject.RaiseEvent("WFSave");
-
-                        rowCount_del = ListViewq_invoicedetails_del.getRowCount();
-                        rowcount2_del = formObject.getNGListIndex("q_invoicedetails");
-                        System.out.println("Row count2 after delete: " + rowcount2_del);
-                        System.out.println("Row count after delete: " + rowCount_del);
                         break;
 
-//                    case "Pick_department":
-//                        Query = "select description from department order by description asc";
-//                        objPicklistListenerHandler.openPickList("department", "Description", "Department Master", 35, 35, Query);
-//                        break;
                     case "Btn_fetchpodetails":
                         boolean rowexists = false;
                         String ponumber = formObject.getNGValue("ponumber");
-                        ListView listview = (ListView) formObject.getComponent("q_multiplepo");
-                        int rowcount = listview.getRowCount();
+                        int rowcount = formObject.getLVWRowCount("q_multiplepo");
                         String listvalue = "";
                         for (int j = 0; j <= rowcount; j++) {
                             listvalue = formObject.getNGValue("q_multiplepo", j, 0);
@@ -378,7 +360,7 @@ public class Initiator implements FormListener {
         System.out.println("----------------------Intiation Workstep Loaded from form populated........---------------------------");
         formObject.clear("filestatus");
         objGeneral = new General();
-        formObject.setEnabled("state", true);
+//        formObject.setEnabled("state", true);
 
         if (!formObject.getNGValue("previousactivity").equalsIgnoreCase("Approver")
                 && !formObject.getNGValue("previousactivity").equalsIgnoreCase("Accounts")) {

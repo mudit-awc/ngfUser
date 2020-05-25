@@ -110,101 +110,25 @@ public class Approver implements FormListener {
         objGeneral = new General();
 
         String filestatus = formObject.getNGValue("filestatus");
-        String levelflag_ = formObject.getNGValue("levelflag");
-//        System.out.println("Level Flag : " + levelflag_);
-//        int levelflag = Integer.parseInt(levelflag_) + 1;
-//        System.out.println("level flag : " + levelflag);
-//        String state = formObject.getNGValue("state");
-//        System.out.println("State : " + state);
-//
-//        if (filestatus.equalsIgnoreCase("Approved")) {
-//            try {
-//                System.out.println("inside Approver");
-//                Query = "select TOP 1 ApproverCode from RABillApproverMaster where Head = 'RABill' "
-//                        + "and ApproverLevel='" + levelflag + "'and State ='" + state + "'"
-//                        + "and approvercode is not null "
-//                        + "and approvercode <> ''";
-//                System.out.println("Query:" + Query);
-//                result = formObject.getDataFromDataSource(Query);
-//                System.out.println("result" + result);
-//                if (result.size() > 0) {
-//                    System.out.println("assignto " + result.get(0).get(0));
-//                    System.out.println("levelflag " + levelflag);
-//                    formObject.setNGValue("assignto", result.get(0).get(0));
-//                    formObject.setNGValue("levelflag", levelflag);
-//                    formObject.setNGValue("nextactivity", "Approver");
-//                } else {
-//                    System.out.println("inside else of approver");
-//
-//                    Query = "select ApproverLevel, ApproverCode from RABillApproverMaster where  "
-//                            + "head = 'RABill' "
-//                            + "and state = '" + formObject.getNGValue("state") + "' "
-//                            + "and approverlevel in ('Maker', 'Checker')";
-//                    System.out.println("query  for level is " + Query);
-//                    result = formObject.getDataFromDataSource(Query);
-//                    if (result.size() > 0) {
-//                        if (result.get(0).get(0).equalsIgnoreCase("Maker")) {
-//                            formObject.setNGValue("levelflag", "Maker");
-//                        } else if (result.get(levelflag).get(0).equalsIgnoreCase("Checker")) {
-//                            formObject.setNGValue("levelflag", "Checker");
-//                        }
-//                        formObject.setNGValue("assignto", result.get(0).get(1));
-//                        formObject.setNGValue("nextactivity", "Accounts");
-//                    } else {
-//                        formObject.setNGValue("nextactivity", "SchedulerAccount");
-//                        //formObject.setNGValue("assignto", "NA");
-//                    }
-//                }
-//
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Query Raised")) {
-//
-        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag")) + 1;
-        String sQuery = "", nextactivity = "", strLevelFlag = "";
-
+        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag"));
         if (filestatus.equalsIgnoreCase("Approved")) {
-            Query = "select count(*) from RABillApproverMaster "
-                    + "where site = '" + formObject.getNGValue("site") + "' "
-                    + "and state = '" + formObject.getNGValue("state") + "' "
-                    + "and department = '" + formObject.getNGValue("department") + "' ";
-            sQuery = Query + "and ApproverLevel = '" + levelflag + "' ";
-            System.out.println("Query: " + sQuery);
-            result = formObject.getDataFromDataSource(sQuery);
-            if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                sQuery = "";
-                sQuery = Query + "and ApproverLevel = 'Maker'";
-                System.out.println("Query: " + sQuery);
-                result = formObject.getDataFromDataSource(sQuery);
-                if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                    sQuery = "";
-                    sQuery = Query + "and ApproverLevel = 'Checker'";
-                    System.out.println("Query: " + sQuery);
-                    result = formObject.getDataFromDataSource(sQuery);
-                    if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                        throw new ValidatorException(new FacesMessage("No Approver and Account Maker/Checker defined in the DoA."));
-                    } else {
-                        strLevelFlag = "Checker";
-                        nextactivity = "Accounts";
-                    }
-                } else {
-                    strLevelFlag = "Maker";
-                    nextactivity = "Accounts";
-                }
-            } else {
-                strLevelFlag = String.valueOf(levelflag);
-                nextactivity = "Approver";
-            }
-        } else if (filestatus.equalsIgnoreCase("Query Raised")) {
-            nextactivity = "Indexer";
+            levelflag = levelflag + 1;
+            objGeneral.checkRABillDoAUser(String.valueOf(levelflag), "Approver");
+        } else if (filestatus.equalsIgnoreCase("Reject")) {
+            levelflag = levelflag - 1;
+            formObject.setNGValue("FilterDoA_ApproverLevel", levelflag);
+            formObject.setNGValue("levelflag", levelflag);
         }
-        formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
-        formObject.setNGValue("levelflag", strLevelFlag);
-        formObject.setNGValue("nextactivity", nextactivity);
         formObject.setNGValue("previousactivity", activityName);
-        objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
-
+        objAccountsGeneral.getsetRABILLSummary(processInstanceId);
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                filestatus,
+                "",
+                formObject.getNGValue("Text69"),
+                "q_transactionhistory"
+        );
     }
 
     @Override

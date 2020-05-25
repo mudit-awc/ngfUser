@@ -231,11 +231,6 @@ public class Initiator implements FormListener {
             formObject.setNGValue("invoiceamount", formObject.getNGValue("invoiceamountex"));
         }
 
-        System.out.println("InvDateEx :" + formObject.getNGValue("invoicedateex"));
-        if (formObject.getNGValue("invoicedate").equals("")) {
-            formObject.setNGValue("invoicedate", formObject.getNGValue("invoicedateex"));
-        }
-
         formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
         formObject.setNGDateRange("duedate", null, new Date(objGeneral.getCurrDateForRange()));
     }

@@ -121,10 +121,7 @@ public class Indexer implements FormListener {
     public void submitFormStarted(FormEvent fe) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
         objGeneral = new General();
-        String levelflag_ = formObject.getNGValue("levelflag");
-        int levelflag = Integer.parseInt(levelflag_);
-        System.out.println("Level Flag: "+levelflag);
-        String state = formObject.getNGValue("state");
+        String levelflag = formObject.getNGValue("levelflag");
 
         Query = "select count(*) from ext_rabill ext, WFINSTRUMENTTABLE wf "
                 + "where ext.processid = wf.ProcessInstanceID "
@@ -142,56 +139,22 @@ public class Indexer implements FormListener {
                     processInstanceId
             );
 
-            if (formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) {
-                objGeneral.setException(userName, "Combo1", "Text69");
-            } else if (formObject.getNGValue("filestatus").equalsIgnoreCase("Initiate")) {
-                String sQuery = "", nextactivity = "", strLevelFlag = "";
-                Query = "select count(*) from RABillApproverMaster "
-                        + "where site = '" + formObject.getNGValue("site") + "' "
-                        + "and state = '" + formObject.getNGValue("state") + "' "
-                        + "and department = '" + formObject.getNGValue("department") + "' ";
-                sQuery = Query + "and ApproverLevel = '" + levelflag + "' ";
-                System.out.println("Query: " + sQuery);
-                result = formObject.getDataFromDataSource(sQuery);
-                System.out.println("result is" + result);
-                if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                    sQuery = "";
-                    sQuery = Query + "and ApproverLevel = 'Maker'";
-                    System.out.println("Query: " + sQuery);
-                    result = formObject.getDataFromDataSource(sQuery);
-                    if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                        sQuery = "";
-                        sQuery = Query + "and ApproverLevel = 'Checker'";
-                        System.out.println("Query: " + sQuery);
-                        result = formObject.getDataFromDataSource(sQuery);
-                        if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                            throw new ValidatorException(new FacesMessage("No Approver and Account Maker/Checker defined in the DoA."));
-                        } else {
-                            strLevelFlag = "Checker";
-                            nextactivity = "Accounts";
-                        }
-                    } else {
-                        strLevelFlag = "Maker";
-                        nextactivity = "Accounts";
-                    }
-                } else {
-                    strLevelFlag = String.valueOf(levelflag);
-                    nextactivity = "Approver";
-                }
-                formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
-                formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
-                //     formObject.setNGValue("FilterDoA_Head", formObject.getNGValue("proctype"));
-                formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
-                formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
-                formObject.setNGValue("levelflag", strLevelFlag);
-                formObject.setNGValue("nextactivity", nextactivity);
-                formObject.setNGValue("previousactivity", activityName);
+            objGeneral.checkRABillDoAUser(levelflag, "");
+            formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
+            formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
+            formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
 
-            }
-            objAccountsGeneral.getsetRABILLSummary(processInstanceId);
             formObject.setNGValue("previousactivity", activityName);
-            System.out.println("before history");
-            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text69"), "q_transactionhistory");
+            objAccountsGeneral.getsetRABILLSummary(processInstanceId);
+            objGeneral.maintainHistory(
+                    userName,
+                    activityName,
+                    formObject.getNGValue("filestatus"),
+                    "",
+                    formObject.getNGValue("Text69"),
+                    "q_transactionhistory"
+            );
+
         } else {
             throw new ValidatorException(new FacesMessage("RABill with same purchase order number is already in process"));
         }

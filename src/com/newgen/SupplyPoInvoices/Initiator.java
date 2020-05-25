@@ -113,8 +113,8 @@ public class Initiator implements FormListener {
                     case "Pick_MultipleGRNPo":
                         Query = "select distinct ext.purchaseorderno from ext_supplypoinvoices ext, WFINSTRUMENTTABLE wf "
                                 + "where wf.ProcessInstanceID = ext.processid "
-                                + "and wf.ActivityName='AccountsMaker' "
-                                + "and ext.multiplegrn='False' "
+                                + "and wf.ActivityName='HoldMultipleGRN' "
+//                                + "and ext.multiplegrn='False' "
                                 + "and ext.purchaseorderno is not null";
                         System.out.println("Query: " + Query);
                         objPicklistListenerHandler.openPickList(

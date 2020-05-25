@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.newgen.common;
 
 import com.newgen.omniforms.FormReference;
@@ -20,35 +15,40 @@ public class AccountsGeneral implements Serializable {
     Calculations objCalculations = null;
     General objGeneral = null;
     String invoiceLineListXML;
-    private String Query;
+    String Query;
 
     public void setRetention(String Query, String PaymentTermId, String RetCreditFieldId, String RetPercentFieldId, String RetAmountFieldId) {
         formObject = FormContext.getCurrentInstance().getFormReference();
         objCalculations = new Calculations();
-        result = formObject.getDataFromDataSource(Query);
-        System.out.println("result : " + result);
-        ArrayList<String> baseamount = new ArrayList<String>();
-        for (int i = 0; i < result.size(); i++) {
-            baseamount.add(result.get(i).get(0));
-        }
-        formObject.setNGValue(RetCreditFieldId, objCalculations.calculateSum(baseamount));
-        System.out.println("before second Query");
-        Query = "select retentionpercent from PaymentTermMaster "
-                + "where PaymentTermCode = '" + formObject.getNGValue(PaymentTermId) + "' "
-                + "and retentionpercent is not null";
-        System.out.println("Query2 : " + Query);
-        result = formObject.getDataFromDataSource(Query);
-        System.out.println("result 2 : " + result.size());
-        if (result.size() > 0) {
-            System.out.println("inside if");
-            formObject.setNGValue(RetPercentFieldId, result.get(0).get(0));
-            formObject.setEnabled(RetAmountFieldId, false);
-            System.out.println("RetPercentFieldId in if " + formObject.getNGValue(RetPercentFieldId));
-        } else {
-            System.out.println("inside else ");
-            formObject.setNGValue(RetPercentFieldId, "0");
-            formObject.setEnabled(RetAmountFieldId, true);
-            System.out.println("RetPercentFieldId " + formObject.getNGValue(RetPercentFieldId));
+
+        String retentionamount = formObject.getNGValue(RetAmountFieldId);
+
+        if (retentionamount.equalsIgnoreCase("")) {
+            result = formObject.getDataFromDataSource(Query);
+            String amount = "";
+            ArrayList<String> baseamount = new ArrayList<String>();
+            for (int i = 0; i < result.size(); i++) {
+                baseamount.add(result.get(i).get(0));
+            }
+            formObject.setNGValue(RetCreditFieldId, objCalculations.calculateSum(baseamount));
+            Query = "select retentionpercent from PaymentTermMaster "
+                    + "where PaymentTermCode = '" + formObject.getNGValue(PaymentTermId) + "' "
+                    + "and retentionpercent is not null";
+            System.out.println("Query : " + Query);
+            result = formObject.getDataFromDataSource(Query);
+            if (result.size() > 0) {
+                formObject.setNGValue(RetPercentFieldId, result.get(0).get(0));
+                //call calculate percent amount function
+                amount = objCalculations.calculatePercentAmount(
+                        formObject.getNGValue(RetCreditFieldId),
+                        formObject.getNGValue(RetPercentFieldId)
+                );
+                System.out.println("After amount calculation");
+                formObject.setNGValue(RetAmountFieldId, amount);
+            } else {
+                formObject.setNGValue(RetPercentFieldId, "0");
+            }
+            formObject.RaiseEvent("WFSave");
         }
     }
 
@@ -190,7 +190,7 @@ public class AccountsGeneral implements Serializable {
                                 hsnsacdescription = hsnsacdescription.replace("<", "&lt");
                             }
                             if (hsnsacdescription.contains("&")) {
-                                hsnsacdescription = hsnsacdescription.replace("&", "&amp");
+                                hsnsacdescription = hsnsacdescription.replace("&", "&amp;");
                             }
                             if (hsnsacdescription.contains(">")) {
                                 hsnsacdescription = hsnsacdescription.replace(">", "&gt");
@@ -224,7 +224,13 @@ public class AccountsGeneral implements Serializable {
                                     }
 
                                     if ("RCM".equalsIgnoreCase(resultTaxDocument.get(i).get(15))) {
-                                        reversechargerate = getReverseChargeRate(hsnsactype, hsnsaccode, taxcomponent, "Vendor", formObject.getNGValue("suppliercode"));
+                                        reversechargerate = getReverseChargeRate(
+                                                hsnsactype,
+                                                hsnsaccode,
+                                                taxcomponent,
+                                                "Vendor",
+                                                formObject.getNGValue("suppliercode")
+                                        );
                                     } else {
                                         reversechargerate = "0";
                                     }
@@ -260,7 +266,13 @@ public class AccountsGeneral implements Serializable {
                                 }
 
                                 if ("RCM".equalsIgnoreCase(resultTaxDocument.get(i).get(15))) {
-                                    reversechargerate = getReverseChargeRate(hsnsactype, hsnsaccode, taxcomponent, "Vendor", formObject.getNGValue("suppliercode"));
+                                    reversechargerate = getReverseChargeRate(
+                                            hsnsactype,
+                                            hsnsaccode,
+                                            taxcomponent,
+                                            "Vendor",
+                                            formObject.getNGValue("suppliercode")
+                                    );
                                 } else {
                                     reversechargerate = "0";
                                 }
@@ -462,6 +474,8 @@ public class AccountsGeneral implements Serializable {
         BigDecimal btotallineamount = BigDecimal.ZERO;
         BigDecimal btotalothercharges = BigDecimal.ZERO;
         BigDecimal btotaltaxamount = BigDecimal.ZERO;
+        BigDecimal btotalmaintaincharges = BigDecimal.ZERO;
+        BigDecimal btotaltaxamount1 = BigDecimal.ZERO;
 
         Query = "select  COALESCE(sum(amount),0) from cmplx_invoicedetails where pinstanceid = '" + processInstanceId + "'";
         System.out.println("Query: " + Query);
@@ -526,7 +540,20 @@ public class AccountsGeneral implements Serializable {
             formObject.setNGValue("totalcstamount", result.get(0).get(0));
         }
 
-        formObject.setNGValue("finalamount", btotallineamount.add(btotaltaxamount).add(btotalothercharges));
+        Query = "select COALESCE(SUM(ot.calculatedamount),0) from cmplx_othercharges ot join ChargesMaster ch on "
+                + "ot.chargescode = ch.Code where ch.CredittoVendor = 'Yes' and ot.pinstanceid = '" + processInstanceId + "' ";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            btotalmaintaincharges = new BigDecimal(result.get(0).get(0));
+        }
+
+        Query = "select coalesce(sum(taxamountadjustment),0) from cmplx_taxdocument where pinstanceid = '" + processInstanceId + "'"
+                + " and reversechargeamount = 0 and reversechargepercent = 0";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            btotaltaxamount1 = new BigDecimal(result.get(0).get(0));
+        }
+        formObject.setNGValue("finalamount", btotallineamount.add(btotaltaxamount1).add(btotalmaintaincharges));
         formObject.setNGValue("summ_invoiceamount", formObject.getNGValue("invoiceamount"));
         formObject.setNGValue("summ_invoiceamountreporting", formObject.getNGValue("newbaseamount"));
     }
@@ -601,7 +628,11 @@ public class AccountsGeneral implements Serializable {
 
     public void getsetSupplyPoSummary(String processInstanceId) {
         formObject = FormContext.getCurrentInstance().getFormReference();
-        BigDecimal btotallineamount = null;
+        BigDecimal btotallineamount = BigDecimal.ZERO;
+        BigDecimal btotalothercharges = BigDecimal.ZERO;
+        BigDecimal btotaltaxamount = BigDecimal.ZERO;
+        BigDecimal btotaltaxamount1 = BigDecimal.ZERO;
+
         Query = "select COALESCE(sum(cast(amount as float)),0) from cmplx_invoiceline where pinstanceid = '" + processInstanceId + "'";
         System.out.println("Query: " + Query);
         result = formObject.getDataFromDataSource(Query);
@@ -617,26 +648,76 @@ public class AccountsGeneral implements Serializable {
             formObject.setNGValue("totaltdsamount", result.get(0).get(0));
         }
 
-//        Query = "select  COALESCE(sum(calculatedamount),0) from cmplx_othercharges where pinstanceid = '" + processInstanceId + "'";
-//        System.out.println("Query: " + Query);
-//        result = formObject.getDataFromDataSource(Query);
-//        if (result.size() > 0) {
-//            formObject.setNGValue("totalmaintaincharges", result.get(0).get(0));
-//        }
+        Query = "select  COALESCE(sum(calculatedamount),0) from cmplx_othercharges where pinstanceid = '" + processInstanceId + "'";
+        System.out.println("Query: " + Query);
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            btotalothercharges = new BigDecimal(result.get(0).get(0));
+            formObject.setNGValue("totalmaintaincharges", btotalothercharges);
+        }
+
         Query = "select  COALESCE(sum(taxamountadjustment),0) from cmplx_taxdocument where "
                 + "pinstanceid = '" + processInstanceId + "'";
         System.out.println("Query: " + Query);
         result = formObject.getDataFromDataSource(Query);
         if (result.size() > 0) {
-            BigDecimal btotaltaxamount = new BigDecimal(result.get(0).get(0));
+            btotaltaxamount = new BigDecimal(result.get(0).get(0));
             formObject.setNGValue("totaltaxamount", result.get(0).get(0));
             formObject.setNGValue("totalamountwithtaxes", btotallineamount.add(btotaltaxamount));
         }
+
+        Query = "select  COALESCE(SUM(taxamountadjustment),0) from cmplx_taxdocument where taxcomponent = 'CGST' and pinstanceid = '" + processInstanceId + "'";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            formObject.setNGValue("totalcgstamount", result.get(0).get(0));
+        }
+
+        Query = "select  COALESCE(SUM(taxamountadjustment),0) from cmplx_taxdocument where taxcomponent = 'SGST' and pinstanceid = '" + processInstanceId + "'";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            formObject.setNGValue("totalsgstamount", result.get(0).get(0));
+        }
+
+        Query = "select  COALESCE(SUM(taxamountadjustment),0) from cmplx_taxdocument where taxcomponent = 'IGST' and pinstanceid = '" + processInstanceId + "'";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            formObject.setNGValue("totaligstamount", result.get(0).get(0));
+        }
+
+        Query = "select  COALESCE(SUM(taxamountadjustment),0) from cmplx_taxdocument where taxcomponent = 'VAT' and pinstanceid = '" + processInstanceId + "'";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            formObject.setNGValue("totalvatamount", result.get(0).get(0));
+        }
+
+        Query = "select  COALESCE(SUM(taxamountadjustment),0) from cmplx_taxdocument where taxcomponent = 'CST' and pinstanceid = '" + processInstanceId + "'";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            formObject.setNGValue("totalcstamount", result.get(0).get(0));
+        }
+
+        Query = "select COALESCE(SUM(ot.calculatedamount),0) from cmplx_othercharges ot join ChargesMaster ch on "
+                + "ot.chargescode = ch.Code where ch.CredittoVendor = 'Yes' and ot.pinstanceid = '" + processInstanceId + "' ";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            btotalothercharges = new BigDecimal(result.get(0).get(0));
+        }
+
+        Query = "select coalesce(sum(taxamountadjustment),0) from cmplx_taxdocument where pinstanceid = '" + processInstanceId + "'"
+                + " and reversechargeamount = 0 and reversechargepercent = 0";
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            btotaltaxamount1 = new BigDecimal(result.get(0).get(0));
+        }
+
+        formObject.setNGValue("finalamount", btotallineamount.add(btotaltaxamount1).add(btotalothercharges));
+        formObject.setNGValue("summ_invoiceamount", formObject.getNGValue("invoiceamount"));
+        formObject.setNGValue("summ_invoiceamountreporting", formObject.getNGValue("newbaseamount"));
     }
 
     public void setFinancialDimension(String FinancialDimensionLvId, String processInstaceId) {
-        Query = "select po.ledgeraccount,po.businessunit,po.state,po.costcenter,po.costcentergroup,po.gla,"
-                + "po.vendortaxinformation,po.purchaseorderno,po.linenumber,po.itemnumber,po.department "
+        Query = "select coalesce(po.ledgeraccount,''),po.businessunit,po.state,po.costcenter,po.costcentergroup,po.gla,"
+                + "po.vendorcode,po.purchaseorderno,po.linenumber,po.itemnumber,po.department "
                 + "from cmplx_polinedetails po, cmplx_invoicedetails inv "
                 + "where po.pinstanceid = inv.pinstanceid "
                 + "and inv.purchaseorderno = po.purchaseorderno "
@@ -646,7 +727,7 @@ public class AccountsGeneral implements Serializable {
         String FinancialDimensionXML = "";
         formObject = FormContext.getCurrentInstance().getFormReference();
         List<List<String>> conactresult;
-        String sitedesc = "", accountdesc = "", costcenterdesc = "", gladesc = "", costelementdesc = "", departmentdesc = "";
+        String sitedesc = "", accountdesc = "", costcenterdesc = "", gladesc = "", costelementdesc = "", departmentdesc = "", vendordsc = "";
         System.out.println("inside setFinancialDimension" + Query);
         result = formObject.getDataFromDataSource(Query);
         for (int f = 0; f < result.size(); f++) {
@@ -695,6 +776,12 @@ public class AccountsGeneral implements Serializable {
                     costelementdesc = conactresult.get(0).get(0);
                 }
 
+                Query = "select concat(VendorCode,'-',VendorName) from VendorMaster where VendorCode = '" + result.get(f).get(6) + "'";
+                conactresult = formObject.getDataFromDataSource(Query);
+                if (conactresult.size() > 0) {
+                    vendordsc = conactresult.get(0).get(0);
+                }
+
                 FinancialDimensionXML = (new StringBuilder()).append(FinancialDimensionXML).
                         append("<ListItem><SubItem>").append(result.get(f).get(8)).//line no
                         append("</SubItem><SubItem>").append(result.get(f).get(9)).//item no
@@ -709,9 +796,12 @@ public class AccountsGeneral implements Serializable {
                         append("</SubItem><SubItem>").append(costelementdesc).// cost center Group description
                         append("</SubItem><SubItem>").append(result.get(f).get(5)).//gla
                         append("</SubItem><SubItem>").append(gladesc).// gla description
-                        append("</SubItem><SubItem>").append(result.get(f).get(6)).//vendor
+                        append("</SubItem><SubItem>").append(result.get(f).get(6)).//vendor code
+                        append("</SubItem><SubItem>").append(vendordsc).//vendor description
                         append("</SubItem><SubItem>").append(result.get(f).get(10)).//department
                         append("</SubItem><SubItem>").append(departmentdesc).//department description
+                        append("</SubItem><SubItem>").append("").//warehousse
+                        append("</SubItem><SubItem>").append("").//warehousse description
                         append("</SubItem><SubItem>").append(result.get(f).get(7)).//po number 
                         append("</SubItem></ListItem>").toString();
             }
@@ -777,6 +867,39 @@ public class AccountsGeneral implements Serializable {
 //            formObject.renderControl("q_taxdocument");
 //            formObject.RaiseEvent("WFSave");
 //            throw new ValidatorException(new FacesMessage("Tax document deatils cleared."));
+        }
+    }
+
+    public void setSameSgstCgst(int rowIndex, String TaxComponent) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        System.out.println("Inside sgst_cgst method");
+        String TaxComponent1 = "", TaxDocumentXML1 = "", Line_no = "";
+        if (TaxComponent.equalsIgnoreCase("SGST") || TaxComponent.equalsIgnoreCase("CGST")) {
+            if (TaxComponent.equalsIgnoreCase("SGST")) {
+                TaxComponent1 = "CGST";
+                Line_no = String.valueOf(rowIndex + 1);
+            } else {
+                TaxComponent1 = "SGST";
+                Line_no = String.valueOf(rowIndex - 1);
+            }
+            System.out.println("Updating Listview for " + TaxComponent1 + "");
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 0, formObject.getNGValue("qtd_linenumber"));//line number
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 1, formObject.getNGValue("qtd_itemnumber")); //item number
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 2, formObject.getNGValue("qtd_gstingdiuid")); //gstingdiuid
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 3, formObject.getNGValue("qtd_hsnsactype")); //hsnsac type
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 4, formObject.getNGValue("qtd_hsnsaccode")); //hsnsac code
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 5, formObject.getNGValue("qtd_hsnsacdescription")); //hsnsac description
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 6, TaxComponent1); //tax component
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 7, formObject.getNGValue("qtd_taxrate")); //rate
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 8, formObject.getNGValue("qtd_taxamount")); //tax amount
+            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 9, formObject.getNGValue("qtd_taxamountadjustment")); //adjustment tax amount
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 10, formObject.getNGValue("qtd_nonbusinessusagepercent")); //non business usage %
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 11, formObject.getNGValue("qtd_reversechargepercent")); //reverse charge %
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 12, formObject.getNGValue("qtd_reversechargeamount")); //reverse charge amount
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 13, formObject.getNGValue("qtd_gstratetype")); //GST Rate Type
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 14, formObject.getNGValue("qtd_exempt"));
+//            formObject.setNGValue("q_taxdocument", Integer.parseInt(Line_no), 14, formObject.getNGValue("qtd_ponumber"));
+            System.out.println("Values updated");
         }
     }
 

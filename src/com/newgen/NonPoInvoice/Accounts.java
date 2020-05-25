@@ -1,3 +1,4 @@
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -227,11 +228,12 @@ public class Accounts implements FormListener {
 
                     case "Btn_Modify_Taxdocument":
                         System.out.println("inside modify of tax document");
-
-                        sgst_cgst(formObject.getSelectedIndex("q_taxdocument"), formObject.getNGValue("qtd_ledgeraccount"),
-                                formObject.getNGValue("qtd_taxcomponent"));
+                        sgst_cgst(
+                                formObject.getSelectedIndex("q_taxdocument"),
+                                formObject.getNGValue("qtd_ledgeraccount"),
+                                formObject.getNGValue("qtd_taxcomponent")
+                        );
                         formObject.ExecuteExternalCommand("NGModifyRow", "q_taxdocument");
-                        System.out.println("Modified method called");
                         formObject.RaiseEvent("WFSave");
                         break;
 
@@ -286,7 +288,7 @@ public class Accounts implements FormListener {
                         System.out.println("Query" + Query);
                         result = formObject.getDataFromDataSource(Query);
                         if (result.size() > 0) {
-                            formObject.setNGValue("q_ledgerbusinessunit", site + "-" + result.get(0).get(0));
+                            formObject.setNGValue("q_ledgerbusinessunit", site + "_" + result.get(0).get(0));
                             formObject.setNGValue("q_ledgerbusinessunitcode", site);
                         }
 
@@ -460,6 +462,7 @@ public class Accounts implements FormListener {
                         if (exempt.equalsIgnoreCase("true")) {
                             formObject.setNGValue("qtd_taxamount", "0");
                             formObject.setNGValue("qtd_taxamountadjustment", "0");
+                            formObject.setLocked("qtd_taxamountadjustment", true);
                         } else {
                             String Query = "select amount from cmplx_ledgerlinedetails where "
                                     + "pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "' "
@@ -471,7 +474,7 @@ public class Accounts implements FormListener {
                             );
                             formObject.setNGValue("qtd_taxamount", taxamount);
                             formObject.setNGValue("qtd_taxamountadjustment", taxamount);
-
+                            formObject.setLocked("qtd_taxamountadjustment", false);
                         }
                         break;
                 }
@@ -636,12 +639,13 @@ public class Accounts implements FormListener {
         System.out.println("----------------------Intiation Workstep Loaded from form populated........---------------------------");
         objGeneral = new General();
 
+        formObject.setNGValue("Text51", "");
         formObject.clear("filestatus");
         formObject.setNGValue("filestatus", "");
         formObject.addComboItem("filestatus", "Approve", "Approve");
         formObject.addComboItem("filestatus", "Reject", "Reject");
         formObject.addComboItem("filestatus", "Query Raise", "Query Raise");
-        formObject.addComboItem("filestatus", "Discard", "Discard");
+//        formObject.addComboItem("filestatus", "Discard", "Discard");
 
         String currentdate = objGeneral.getCurrentDate();
         if ("".equalsIgnoreCase(formObject.getNGValue("postingdate"))) {
@@ -683,7 +687,8 @@ public class Accounts implements FormListener {
         // TODO Auto-generated method stub
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
-
+        objAccountsGeneral = new AccountsGeneral();
+        objAccountsGeneral.getsetServiceNonPoSummary(processInstanceId);
     }
 
     @Override
@@ -701,6 +706,9 @@ public class Accounts implements FormListener {
         // TODO Auto-generated method stub
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
+        if (activityName.equalsIgnoreCase("AccountsChecker")) {
+            formObject.setNGValue("accountschecker", userName);
+        }
         objGeneral = new General();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
         objGeneral.compareDate(formObject.getNGValue("invoicedate"), formObject.getNGValue("postingdate"));
@@ -739,14 +747,15 @@ public class Accounts implements FormListener {
                     throw new ValidatorException(new FacesMessage("Kindly resolve all the errors to proceed further"));
                 }
             }
-
+            
+            objAccountsGeneral.getsetRABILLSummary(processInstanceId);
             formObject.setNGValue("previousactivity", activityName);
             objGeneral.maintainHistory(
                     userName,
                     activityName,
                     formObject.getNGValue("filestatus"),
                     "",
-                    formObject.getNGValue("Text51"),
+                    formObject.getNGValue("Text69"),
                     "q_transactionhistory"
             );
         } else {
@@ -779,8 +788,7 @@ public class Accounts implements FormListener {
 
     void updateTDSvalue() {
         formObject = FormContext.getCurrentInstance().getFormReference();
-        ListView LVq_ledgerlinedetails = (ListView) formObject.getComponent("q_ledgerlinedetails");
-        int RCq_ledgerlinedetails = LVq_ledgerlinedetails.getRowCount();
+        int RCq_ledgerlinedetails = formObject.getLVWRowCount("q_ledgerlinedetails");
         if (RCq_ledgerlinedetails > 0) {
             String newq_ledgertdsgroupcode = formObject.getNGValue("q_ledgertdsgroupcode");
             if (!newq_ledgertdsgroupcode.equalsIgnoreCase(formObject.getNGValue("q_ledgerlinedetails", 0, 21))) {

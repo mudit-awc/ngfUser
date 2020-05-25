@@ -102,15 +102,15 @@ public class Accounts implements FormListener {
                         if (exempt.equalsIgnoreCase("true")) {
                             formObject.setNGValue("qoftd_taxamount", "0");
                             formObject.setNGValue("qoftd_taxamountadjustment", "0");
+                            formObject.setLocked("qtd_taxamountadjustment", true);
                         } else {
-                            
                             String taxamount = objCalculations.calculatePercentAmount(
                                     formObject.getNGValue("Finalbillamount"),
                                     formObject.getNGValue("qoftd_taxrate")
                             );
                             formObject.setNGValue("qoftd_taxamount", taxamount);
                             formObject.setNGValue("qoftd_taxamountadjustment", taxamount);
-
+                            formObject.setLocked("qtd_taxamountadjustment", false);
                         }
                         break;
 
@@ -241,7 +241,10 @@ public class Accounts implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
         objGeneral = new General();
-         AccountsGeneral gen = new AccountsGeneral();
+        if(activityName.equalsIgnoreCase("AccountsChecker")){
+        formObject.setNGValue("accountschecker", userName);
+        } 
+        AccountsGeneral gen = new AccountsGeneral();
          gen.getsetOutwardFreightSummary(processInstanceId);
         if (activityName.equalsIgnoreCase("Accounts")) {
 

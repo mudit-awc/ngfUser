@@ -29,7 +29,8 @@ public class RABill implements IFormListenerFactory {
             return new Indexer();
         } else if (sActivityName.equalsIgnoreCase("Approver")) {
             return new Approver();
-        } else if ((sActivityName.equalsIgnoreCase("Accounts"))
+        } else if (sActivityName.equalsIgnoreCase("AccountsMaker")
+                || sActivityName.equalsIgnoreCase("AccountsChecker")
                 || sActivityName.equalsIgnoreCase("AXSyncException")) {
             return new Accounts();
         } else if (sActivityName.equalsIgnoreCase("PurchaseUser")) {

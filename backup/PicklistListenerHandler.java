@@ -69,18 +69,18 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         /*Controls for Process Name: No PO Invoice*/
         if (controlName.equalsIgnoreCase("journalname")) {
             formObject.setNGValue("journalcode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
         if (controlName.equalsIgnoreCase("paymentterm")) {
             formObject.setNGValue("paymenttermcode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
         }
 
         if (controlName.equalsIgnoreCase("q_ledgertdsgroup")) {
             formObject.setNGValue("q_ledgertdsgroupcode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
 
             String q_ledgeradjustedoriginamount = formObject.getNGValue("q_ledgeradjustedoriginamount");
@@ -105,7 +105,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         if (controlName.equalsIgnoreCase("account")) {
             formObject.setNGValue("accountcode", m_objPickList.getSelectedValue().get(0));
             formObject.setNGValue("accountname", m_objPickList.getSelectedValue().get(1));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
         if (controlName.equalsIgnoreCase("qtd_hsnsacdescription")) {
@@ -192,7 +192,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         }
         if (controlName.equalsIgnoreCase("q_ledgeraccountdesc")) {
             formObject.setNGValue("q_ledgeraccountdesc", m_objPickList.getSelectedValue().get(1));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
             formObject.setNGValue("q_ledgeraccount", m_objPickList.getSelectedValue().get(0));
         }
@@ -212,7 +212,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
 
         if (controlName.equalsIgnoreCase("q_ledgerbusinessunit")) {
             formObject.setNGValue("q_ledgerbusinessunitcode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
             String BusinessunitCode = formObject.getNGValue("q_ledgerbusinessunitcode");
             if (BusinessunitCode.equalsIgnoreCase("104")) {
@@ -235,31 +235,31 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
 
         if (controlName.equalsIgnoreCase("q_ledgerrso")) {
             formObject.setNGValue("q_ledgerrsocode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
         if (controlName.equalsIgnoreCase("q_ledgerwarehouse")) {
             formObject.setNGValue("q_ledgerwarehousecode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
         if (controlName.equalsIgnoreCase("q_ledgergla")) {
             formObject.setNGValue("q_ledgerglavalue", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
         if (controlName.equalsIgnoreCase("q_ledgerdepartment")) {
             formObject.setNGValue("q_ledgerdepartmentvalue", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
         if (controlName.equalsIgnoreCase("q_ledgercostcenter")) {
             formObject.setNGValue("q_ledgercostcentervalue", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
             String CostCenterValue = formObject.getNGValue("q_ledgercostcentervalue");
             query = "select value,Description from CostElement where "
@@ -268,7 +268,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             result = formObject.getDataFromDataSource(query);
             if (result.size() > 0) {
                 formObject.setNGValue("q_ledgercostcentergroupvalue", result.get(0).get(0));
-                formObject.setNGValue("q_ledgercostcentergroup", result.get(0).get(0) + "-" + result.get(0).get(1));
+                formObject.setNGValue("q_ledgercostcentergroup", result.get(0).get(0) + "_" + result.get(0).get(1));
             }
         }
 
@@ -288,12 +288,12 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         }
         if (controlName.equalsIgnoreCase("qtd_hsnsaccode")) {
             formObject.setNGValue("qtd_hsnsaccode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
         if (controlName.equalsIgnoreCase("qoc_vendoraccount")) {
             formObject.setNGValue("qoc_vendoraccountcode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
@@ -312,12 +312,12 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         }
         if (controlName.equalsIgnoreCase("ij_projectcategory")) {
             formObject.setNGValue("ij_projectcategorycode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
         if (controlName.equalsIgnoreCase("ij_itemdesc")) {
             formObject.setNGValue("ij_itemno", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
         if (controlName.equalsIgnoreCase("qpo_structurename")) {
@@ -329,13 +329,13 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         }
         if (controlName.equalsIgnoreCase("ij_site")) {
             formObject.setNGValue("ij_sitecode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
 
         if (controlName.equalsIgnoreCase("qrawht_tdsgroup")) {
             formObject.setNGValue("qrawht_tdsgroupcode", m_objPickList.getSelectedValue().get(0));
-            comp.setValue(m_objPickList.getSelectedValue().get(0) + "-" + m_objPickList.getSelectedValue().get(1));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
             formObject.setNGValue("qrawht_adjustedoriginamount", formObject.getNGValue("invoiceamount"));
             String q_adjustedoriginamount = formObject.getNGValue("qrawht_adjustedoriginamount");

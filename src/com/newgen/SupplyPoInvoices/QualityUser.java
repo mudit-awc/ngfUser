@@ -75,14 +75,14 @@ public class QualityUser implements FormListener {
                         result = formObject.getDataFromDataSource(Query);
                         System.out.println("Query : " + Query);
                         formObject.setNGValue("Quality_itemselect", result.get(0).get(0));
-                        ListView ListViewq_quarantinemanagement = (ListView) formObject.getComponent("q_quarantinemanagement");
-                        int RowCountq_quarantinemanagement = ListViewq_quarantinemanagement.getRowCount();
+//                        ListView ListViewq_quarantinemanagement = (ListView) formObject.getComponent("q_quarantinemanagement");
+                        int RowCountq_quarantinemanagement = formObject.getLVWRowCount("q_quarantinemanagement");
                         for (int m = 0; m < RowCountq_quarantinemanagement; m++) {
-                            if (linenoinchange.equalsIgnoreCase(formObject.getNGValue("q_quarantinemanagement", m, 5))) {
-                                formObject.setNGValue("Q_acceptedquantity", formObject.getNGValue("q_quarantinemanagement", m, 1));
-                                formObject.setNGValue("Q_acceptedremarks", formObject.getNGValue("q_quarantinemanagement", m, 2));
-                                formObject.setNGValue("Q_rejectedquantity", formObject.getNGValue("q_quarantinemanagement", m, 3));
-                                formObject.setNGValue("Q_rejectedremarks", formObject.getNGValue("q_quarantinemanagement", m, 4));
+                            if (linenoinchange.equalsIgnoreCase(formObject.getNGValue("q_quarantinemanagement", m, 0))) {
+                                formObject.setNGValue("Q_acceptedquantity", formObject.getNGValue("q_quarantinemanagement", m, 2));
+                                formObject.setNGValue("Q_acceptedremarks", formObject.getNGValue("q_quarantinemanagement", m, 3));
+                                formObject.setNGValue("Q_rejectedquantity", formObject.getNGValue("q_quarantinemanagement", m, 4));
+                                formObject.setNGValue("Q_rejectedremarks", formObject.getNGValue("q_quarantinemanagement", m, 5));
 //                                formObject.setNGValue("Quality_itemselect", formObject.getNGValue("q_quarantinemanagement", m, 1));
                                 break;
                             } else {
@@ -175,10 +175,10 @@ public class QualityUser implements FormListener {
                             sumofAccepReject = Float.parseFloat(acceptedQty) + Float.parseFloat(rejectedQty);
                             if (GRNqty == sumofAccepReject) {
                                 ListView ListViewq_quarantinemanagement = (ListView) formObject.getComponent("q_quarantinemanagement");
-                                int RowCountq_quarantinemanagement = ListViewq_quarantinemanagement.getRowCount();
+                                int RowCountq_quarantinemanagement = formObject.getLVWRowCount("q_quarantinemanagement");
                                 if (RowCountq_quarantinemanagement > 0) {
                                     for (int i = 0; i <= RowCountq_quarantinemanagement; i++) {
-                                        if (linenumber.equalsIgnoreCase(formObject.getNGValue("q_quarantinemanagement", i, 5))) {
+                                        if (linenumber.equalsIgnoreCase(formObject.getNGValue("q_quarantinemanagement", i, 0))) {
                                             rowExist = true;
                                             rowExistIndex = i;
                                             break;

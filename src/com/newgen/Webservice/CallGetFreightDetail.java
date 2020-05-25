@@ -199,7 +199,7 @@ public class CallGetFreightDetail {
 					}			
 				}
                         
-                        formObject.setNGValue("FromWareHouseName",sourcewarehousecode + "-" + objJSONObject.optString("FromWareHouseName"));
+                        formObject.setNGValue("FromWareHouseName",sourcewarehousecode + "_" + objJSONObject.optString("FromWareHouseName"));
 			String processid=processInstanceId;
                         String TotalFreight1 = formObject.getNGValue("TotalFreight");
 			System.out.println("Process ID:"+processid);

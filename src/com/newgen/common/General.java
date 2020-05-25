@@ -367,7 +367,7 @@ public class General implements Serializable {
         return month;
     }
 
-    public void linkWorkitem(String EngineName, String SessionId, String ProcessInstanceID, String LinkedProcessInstanceID) {
+    public void linkWorkitem(String EngineName, String SessionId, String ProcessInstanceID, String LinkedProcessInstanceID, String Operation) {
         formObject = FormContext.getCurrentInstance().getFormReference();
         System.out.println("Inside link WI");
 
@@ -377,7 +377,7 @@ public class General implements Serializable {
                 + "<Option>WFLinkWorkitem</Option>"
                 + "<EngineName>" + EngineName + "</EngineName>"
                 + "<SessionId>" + SessionId + "</SessionId>"
-                + "<Operation>A</Operation>"
+                + "<Operation>" + Operation + "</Operation>"
                 + "<WorkItemId>1</WorkItemId>"
                 + "<ProcessInstanceID>" + ProcessInstanceID + "</ProcessInstanceID>"
                 + "<LinkedProcessInstanceID>" + LinkedProcessInstanceID + "</LinkedProcessInstanceID>"
@@ -387,7 +387,7 @@ public class General implements Serializable {
 
     }
 
-    public void forwardWI(String EngineName, String SessionId, String ProcessInstanceID, String processDefId, String activityId, String accountsstatus) {
+    public void forwardWI(String EngineName, String SessionId, String ProcessInstanceID, String processDefId, String activityId, String attributes) {
         String inputxml = "", outputxml = "";
         inputxml = " <WMGetWorkItem_Input> "
                 + " <Option>WMGetWorkItem</Option>"
@@ -414,12 +414,14 @@ public class General implements Serializable {
                     + "<complete>D</complete>"
                     + "<UserDefVarFlag>Y</UserDefVarFlag>"
                     + "<Documents></Documents>"
-                    + "<Attributes><accountsstatus>" + accountsstatus + "</accountsstatus></Attributes>"
+                    + "<Attributes>" + attributes + "</Attributes>"
                     + "</WMAssignWorkItemAttributes_Input>";
 
             System.out.println("Assign Work Item Input :: " + inputxml);
             outputxml = executeWithCallBroker(inputxml);
             System.out.println("Assign Work Item Output XML :: " + outputxml);
+        } else {
+            throw new ValidatorException(new FacesMessage(objXmlResponse.getVal("Subject"), ""));
         }
     }
 
@@ -517,15 +519,80 @@ public class General implements Serializable {
         return DoADefinedFlag;
     }
 
-    public void compareDate(String InvoiceDate, String PostingDate)  {
+    public boolean checkRABillDoAUser(String ApproverLevel, String ApproverStage) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        String sQuery;
+        boolean DoADefinedFlag = false;
+        System.out.println("Inside checkRABillDoAUser");
+        Query = "select count(*) from RABillApproverMaster "
+                + "where site = '" + formObject.getNGValue("site") + "' "
+                + "and state = '" + formObject.getNGValue("state") + "' "
+                + "and department = '" + formObject.getNGValue("department") + "' ";
+        sQuery = Query + "and ApproverLevel = '" + ApproverLevel + "' ";
+        System.out.println("Query: " + sQuery);
+        result = formObject.getDataFromDataSource(sQuery);
+        if (result.get(0).get(0).equalsIgnoreCase("0")) {
+            if (ApproverStage.equalsIgnoreCase("Approver")) {
+                ApproverLevel = "AccountsMaker";
+                sQuery = Query + "and ApproverLevel = '" + ApproverLevel + "' ";
+                System.out.println("Query: " + sQuery);
+                result = formObject.getDataFromDataSource(sQuery);
+                if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                    throw new ValidatorException(new FacesMessage("DoA is not defined for selected values"));
+                } else {
+                    formObject.setNGValue("FilterDoA_ApproverLevel", ApproverLevel);
+                    formObject.setNGValue("levelflag", ApproverLevel);
+                    DoADefinedFlag = true;
+                }
+            } else {
+                throw new ValidatorException(new FacesMessage("DoA is not defined for selected values"));
+            }
+        } else {
+            formObject.setNGValue("FilterDoA_ApproverLevel", ApproverLevel);
+            formObject.setNGValue("levelflag", ApproverLevel);
+            DoADefinedFlag = true;
+        }
+        return DoADefinedFlag;
+    }
+
+    public void compareDate(String InvoiceDate, String PostingDate) {
         System.out.println("inside compareDate");
         System.out.println("InvoiceDate = " + InvoiceDate);
         System.out.println("PostingDate = " + PostingDate);
-     
-        if ((date_converter(InvoiceDate)).compareTo(date_converter(PostingDate)) < 0) {
+
+        if ((date_converter(PostingDate)).compareTo(date_converter(InvoiceDate)) < 0) {
             System.out.println("trueeee");
-            throw new ValidatorException(new FacesMessage("Posting Date Can't be greater then Invoice Date"));
-        } 
+            throw new ValidatorException(new FacesMessage("Invoice date can not be later than Posting Date"));
+        }
+    }
+
+    public String formatExtractedInvoiceDt(String InvoiceDateEx) {
+        String FormattedInvoiceDt = "";
+        if (InvoiceDateEx.contains(".")) {
+            InvoiceDateEx = InvoiceDateEx.replace('.', '/');
+            System.out.println(InvoiceDateEx);
+        }
+        if (InvoiceDateEx.contains("-")) {
+            InvoiceDateEx = InvoiceDateEx.replace('-', '/');
+            System.out.println(InvoiceDateEx);
+        }
+        if (InvoiceDateEx.contains("\\")) {
+            InvoiceDateEx = InvoiceDateEx.replace('\\', '/');
+            System.out.println(InvoiceDateEx);
+        }
+        System.out.println("InvoiceDateEx :" + InvoiceDateEx);
+
+        String splitInvoiceDateEx[] = InvoiceDateEx.split("/");
+        String dd = splitInvoiceDateEx[0];
+        if (dd.length() == 1) {
+            dd = "0" + dd;
+        }
+        String mm = splitInvoiceDateEx[1];
+        if (mm.length() == 1) {
+            mm = "0" + mm;
+        }
+        FormattedInvoiceDt = dd + "/" + mm + "/" + splitInvoiceDateEx[2];
+        return FormattedInvoiceDt;
     }
 
     public Date date_converter(String inputdate) {
@@ -549,7 +616,6 @@ public class General implements Serializable {
                 if (Integer.parseInt(inputdate.split("/")[1]) > 12 && Integer.parseInt(inputdate.split("/")[2]) > 999) {
                     inputdate = inputdate.split("/")[1] + "/" + inputdate.split("/")[0] + "/" + inputdate.split("/")[2];
                     date = targetFormat.parse(inputdate);
-
                 } else if (Integer.parseInt(inputdate.split("/")[0]) > 999
                         && Integer.parseInt(inputdate.split("/")[2]) < 32) {
                     inputdate = inputdate.split("/")[2] + "/" + inputdate.split("/")[1] + "/" + inputdate.split("/")[0];
@@ -563,7 +629,7 @@ public class General implements Serializable {
         } else {
             throw new ValidatorException(new FacesMessage("input date is not in correct format"));
         }
-        System.out.println("return date :"+date);
+        System.out.println("return date :" + date);
         return date;
     }
 }

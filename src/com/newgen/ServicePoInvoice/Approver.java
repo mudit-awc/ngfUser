@@ -15,7 +15,6 @@ import com.newgen.omniforms.event.FormEvent;
 import com.newgen.omniforms.listener.FormListener;
 import java.util.HashMap;
 import java.util.List;
-import javax.faces.application.FacesMessage;
 import javax.faces.validator.ValidatorException;
 
 /**

@@ -12,6 +12,7 @@ package com.newgen.omniforms.user;
 import com.newgen.NonPoInvoice.Accounts;
 import com.newgen.NonPoInvoice.Approver;
 import com.newgen.NonPoInvoice.Initiator;
+import com.newgen.NonPoInvoice.Introduction;
 import com.newgen.omniforms.FormConfig;
 import com.newgen.omniforms.context.FormContext;
 import com.newgen.omniforms.listener.FormListener;
@@ -38,6 +39,9 @@ public class NonPoInvoice implements IFormListenerFactory {
                 || sActivityName.equalsIgnoreCase("AccountsChecker")
                 || sActivityName.equalsIgnoreCase("AXSyncException")) {
             return new Accounts();
+        } else if (sActivityName.equalsIgnoreCase("Introduction")
+                || sActivityName.equalsIgnoreCase("IntroductionWithoutExtraction")) {
+            return new Introduction();
         }
         return null;
     }

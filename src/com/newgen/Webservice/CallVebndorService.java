@@ -71,7 +71,7 @@ public class CallVebndorService {
             Query = "Select PaymentTermDesc from PaymentTermMaster where PaymentTermCode = '"+payment_termid+"'";
             result = formObject.getDataFromDataSource(Query);
             if(result.size()>0){
-                formObject.setNGValue("paymentterm", payment_termid+"-"+result.get(0).get(0));
+                formObject.setNGValue("paymentterm", payment_termid+"_"+result.get(0).get(0));
             }
             else{
                 formObject.setNGValue("paymentterm", "");

@@ -175,7 +175,7 @@ public class Purchase implements FormListener {
                 }
             }
             objAccountsGeneral.getsetRABILLSummary(processInstanceId);
-            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text15"), "q_transactionhistory");
+            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("Text69"), "q_transactionhistory");
         } else {
             throw new ValidatorException(new FacesMessage("Kindly clear the exceptions to proceed further"));
         }

@@ -76,6 +76,9 @@ public class Purchase implements FormListener {
                                     "Service"
                             );
                         }
+
+                        formObject.clear("q_taxdocument");
+                        formObject.clear("q_withholdingtax");
                         break;
                 }
                 break;

@@ -59,7 +59,8 @@ public class Initiator implements FormListener {
 
                     case "account":
                         System.out.println("Account Code value : " + formObject.getNGValue("accountcode"));
-
+                        formObject.setNGValue("VendorCode", formObject.getNGValue("accountcode"));
+                        formObject.setNGValue("VendorName", formObject.getNGValue("accountname"));
                         Query = "select Address, GSTINNumber, StateName,AddressId,AddressName from AddressMaster where PartyCode = '"
                                 + formObject.getNGValue("accountcode") + "'";
                         System.out.println("Query value: " + Query);

@@ -5,7 +5,6 @@
  */
 package com.newgen.Webservice;
 
-import com.newgen.common.AccountsGeneral;
 import com.newgen.common.General;
 import com.newgen.common.ReadProperty;
 import com.newgen.omniforms.FormConfig;
@@ -136,7 +135,8 @@ public class CallPrePaymentService {
                     String remaining_amount_newgen;
                     String Po_number = objJSONArray_POList.getJSONObject(i).optString("purchId");
                     String Invoice_no = objJSONArray_invoiceLineList.getJSONObject(j).optString("invoiceID");
-                    Query = "select remainingamountnewgen from cmplx_prepayment where purchaseorderno='" + Po_number + "' and prepaymentinvoicenumber = '" + Invoice_no + "' and pinstanceid in (select top 1 processid from ext_servicepoinvoice where nextactivity = 'SchedulerAccount' and postingsyncstatus != 'Success' order by processid desc);                                                  ";
+                    Query = "select remainingamountnewgen from cmplx_prepayment where purchaseorderno='" + Po_number + "' and prepaymentinvoicenumber = '" + Invoice_no + "'"
+                            + " and pinstanceid in (select top 1 processid from ext_servicepoinvoice where nextactivity = SchedulerAccount and postingsyncstatus != 'Success' order by processid desc);                                                  ";
                     System.out.println("Query prepayment: " + Query);
                     result = formObject.getDataFromDataSource(Query);
                     System.out.println("result: " + result);

@@ -32,15 +32,13 @@ public class CallPurchaseOrderService {
     ReadProperty objReadProperty = null;
     ServiceConnection objServiceConnection = null;
     String webserviceStatus;
+    String Query = null;
+    List<List<String>> result;
 
     public void GetSetPurchaseOrder(String AccessToken, String POType, String PONumber, String ProcessName) {
         formObject = FormContext.getCurrentInstance().getFormReference();
         objServiceConnection = new ServiceConnection();
         try {
-            System.out.println("inside po class ");
-            //System.out.println("Po AccessToken : " + AccessToken);
-            System.out.println("Po POType : " + POType);
-            System.out.println("Po PONumber : " + PONumber);
             objReadProperty = new ReadProperty();
             JSONObject request_json = new JSONObject();
             try {
@@ -49,10 +47,7 @@ public class CallPurchaseOrderService {
                 JSONArray parmPOParmList = new JSONArray();
                 //
                 if (POType.equalsIgnoreCase("Supply")) {
-                    System.out.println("inside if of po");
-                    ListView ListViewq_invoicedetails = (ListView) formObject.getComponent("q_gateentrylines");
-                    int rowCount = ListViewq_invoicedetails.getRowCount();
-                    System.out.println("Row count : " + rowCount);
+                    int rowCount = formObject.getLVWRowCount("q_gateentrylines");
                     if (rowCount > 0) {
                         for (int i = 0; i < rowCount; i++) {
                             JSONObject parmPOParmListinput = new JSONObject();
@@ -104,10 +99,10 @@ public class CallPurchaseOrderService {
 
     public String parseSupplyPoOutputJSON(String content) throws JSONException {
         formObject = FormContext.getCurrentInstance().getFormReference();
-
-        String POLineContractXML = "";
-        String VendorTaxInformation = "", VendorInvoiceAddress = "", vendorInvoiceLocation = "";
-        String compositionScheme = "", compositionScheme2 = "", state = "", companyAddress = "", companyTaxInformation = "";
+        String poNumber = formObject.getNGValue("purchaseorderno");
+        String QCNormsListXML = "", POLineChargesXML = "", POLineContractXML = "", linenumber = "", itemnumber = "",
+                VendorTaxInformation = "", VendorInvoiceAddress = "", vendorInvoiceLocation = "", vendorgstingdiuid = "",
+                compositionScheme = "", compositionScheme2 = "", state = "", companyAddress = "", companyTaxInformation = "";
         JSONObject objJSON = new JSONObject(content);
         JSONObject objJSONObject = objJSON.getJSONObject("d");
         //Check webservice IsSuccess status
@@ -116,7 +111,6 @@ public class CallPurchaseOrderService {
         System.out.println("IsSuccess : " + IsSuccess);
         System.out.println("ErrorMessage :call purchase order :" + ErrorMessage);
         if (IsSuccess.equalsIgnoreCase("true")) {
-
             //Set Header Details
             System.out.println("Accounting date: " + objJSONObject.optString("AccountingDate"));
             formObject.setNGValue("currency", objJSONObject.optString("Currency"));
@@ -124,20 +118,18 @@ public class CallPurchaseOrderService {
             formObject.setNGValue("suppliername", objJSONObject.optString("VendorName"));
             formObject.setNGValue("loadingcity", objJSONObject.optString("LoadingCity"));
             formObject.setNGValue("site", objJSONObject.optString("Site"));
+            formObject.setNGValue("state", objJSONObject.optString("State"));
             formObject.setNGValue("gi_purchasestatus", objJSONObject.optString("PurchStatus"));
             formObject.setNGValue("department", objJSONObject.optString("Department"));
-            String formatDate = objJSONObject.optString("AccountingDate");
-            String podate = formatDate.replace('-', '/');
-            System.out.println("after replace date : " + podate);
-            formObject.setNGValue("purchaseorderdate", podate);
-
             formObject.setNGValue("businessunit", objJSONObject.optString("BusinessUnit"));
             formObject.setNGValue("msmestatus", objJSONObject.optString("MSMEStatus"));
             formObject.setNGValue("deliveryterm", objJSONObject.optString("DeliveryTerm"));
             formObject.setNGValue("POnumber", formObject.getNGValue("purchaseorderno"));
-            formObject.setNGValue("VendorName", objJSONObject.optString("VendorName"));
-            formObject.setNGValue("VendorCode", objJSONObject.optString("VendorCode"));
-
+            formObject.setNGValue("paymenttermid", objJSONObject.optString("PaymentTermId"));
+            String formatDate = objJSONObject.optString("AccountingDate");
+            String podate = formatDate.replace('-', '/');
+            System.out.println("after replace date : " + podate);
+            formObject.setNGValue("purchaseorderdate", podate);
             compositionScheme = objJSONObject.optString("CompositionScheme");
             System.out.println("compositionScheme");
             if (compositionScheme.equalsIgnoreCase("1")) {
@@ -148,20 +140,30 @@ public class CallPurchaseOrderService {
                 compositionScheme2 = "NO";
             }
             formObject.setNGValue("compositescheme", compositionScheme2);
-
+            Query = "select CONCAT(Value,'-',Description) from Department where Value='" + formObject.getNGValue("department") + "'";
+            result = formObject.getDataFromDataSource(Query);
+            if (result.size() > 0) {
+                formObject.setNGValue("departmentdsc", result.get(0).get(0));
+            } else {
+                formObject.setNGValue("departmentdsc", "");
+            }
+            getsetPaymentTermMsmeStatus(objJSONObject.optString("VendorName"), objJSONObject.optString("PaymentTermId"), "paymentterm");
             //Set Line Details
             JSONArray objJSONArray_poLineList = objJSONObject.getJSONArray("poLineList");
             for (int i = 0; i < objJSONArray_poLineList.length(); i++) {
+                linenumber = objJSONArray_poLineList.getJSONObject(i).optString("LineNumber");
+                itemnumber = objJSONArray_poLineList.getJSONObject(i).optString("ItemNumber");
                 VendorTaxInformation = objJSONArray_poLineList.getJSONObject(0).optString("VendorTaxInformation");
                 VendorInvoiceAddress = objJSONArray_poLineList.getJSONObject(0).optString("VendorInvoiceAddress");
                 vendorInvoiceLocation = objJSONArray_poLineList.getJSONObject(0).optString("vendorInvoiceLocation");
+                vendorgstingdiuid = objJSONArray_poLineList.getJSONObject(0).optString("VendorGSTIN");
                 companyAddress = objJSONArray_poLineList.getJSONObject(0).optString("DeliveryAddress");
                 companyTaxInformation = objJSONArray_poLineList.getJSONObject(0).optString("TaxInformation");
 
                 formObject.setNGValue("vendortaxinformation", VendorTaxInformation);
                 formObject.setNGValue("vendoraddress", VendorInvoiceAddress);
                 formObject.setNGValue("vendorlocation", vendorInvoiceLocation);
-                formObject.setNGValue("state", "");
+                formObject.setNGValue("vendorgstingdiuid", vendorgstingdiuid);
                 formObject.setNGValue("companyaddress", companyAddress);
                 formObject.setNGValue("companytaxinformation", companyTaxInformation);
 
@@ -195,7 +197,7 @@ public class CallPurchaseOrderService {
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("FixedAssetGroup")).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("fixedAssetNumbe")).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("")).
-                        append("</SubItem><SubItem>").append(formObject.getNGValue("purchaseorderno")).
+                        append("</SubItem><SubItem>").append(poNumber).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("linePurchStatus")).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("tcsGroup")).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("vendorInvoiceLocation")).
@@ -245,40 +247,90 @@ public class CallPurchaseOrderService {
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("TaxRateType")).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("DeliveryRemainder")). //Remaining Quantity
                         append("</SubItem></ListItem>").toString();
+
+                JSONArray objAtIndexArray_qcNormsList = objJSONArray_poLineList.getJSONObject(i).getJSONArray("QCNormsList");
+                for (int j = 0; j < objAtIndexArray_qcNormsList.length(); j++) {
+                    QCNormsListXML = (new StringBuilder()).append(QCNormsListXML).
+                            append("<ListItem><SubItem>").append(linenumber).
+                            append("</SubItem><SubItem>").append(itemnumber).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("Test")).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("TestGroup")).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("Value")).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("ValueType")).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("Min")).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("Max")).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("Criteria")).
+                            append("</SubItem><SubItem>").append(objAtIndexArray_qcNormsList.getJSONObject(j).optString("Description")).
+                            append("</SubItem></ListItem>").toString();
+                }
+
+                JSONArray objJSONArray_POLineCharges = objJSONArray_poLineList.getJSONObject(i).getJSONArray("POLineCharges");
+                for (int j = 0; j < objJSONArray_POLineCharges.length(); j++) {
+//                    String AssessableValue = "FALSE";
+//                    if (objJSONArray_POLineCharges.getJSONObject(j).optString("assesableValue").equals("1")) {
+//                        AssessableValue = "TRUE";
+//                    }
+//                    POLineChargesXML = (new StringBuilder()).append(POLineChargesXML).
+//                            append("<ListItem><SubItem>").append(linenumber).
+//                            append("</SubItem><SubItem>").append(itemnumber).
+//                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("chargesCode")).
+//                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("categoryDescription")).
+//                            append("</SubItem><SubItem>").append(AssessableValue).
+//                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("chargesValue")).
+//                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("calculatedAmount")).
+//                            append("</SubItem><SubItem>").append(objJSONObject.optString("VendorCode") + "_" + objJSONObject.optString("VendorName")). //Vendor Name
+//                            append("</SubItem><SubItem>").append("Line"). //Charges At
+//                            append("</SubItem><SubItem>").append(objJSONObject.optString("VendorCode")). //Vendor Code
+//                            append("</SubItem><SubItem>").append(poNumber).
+//                            append("</SubItem></ListItem>").toString();
+
+                    String chargesCode = objJSONArray_POLineCharges.getJSONObject(j).optString("chargesCode");
+                    if (chargesCode.contains("&")) {
+                        chargesCode = chargesCode.replace("&", "&amp;");
+                    }
+                    POLineChargesXML = (new StringBuilder()).append(POLineChargesXML).
+                            append("<ListItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("LineNumber")).
+                            append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("ItemNumber")).
+                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("calculatedAmount")).
+                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("currency")).
+                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("assesableValue").toUpperCase()).
+                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("categoryENUM")).
+                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("categoryDescription")).
+                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("chargesValue")).
+                            append("</SubItem><SubItem>").append(chargesCode).
+                            append("</SubItem><SubItem>").append(poNumber).
+                            append("</SubItem></ListItem>").toString();
+
+                }
             }
-
+//            System.out.println("QCNormsListXML: " + QCNormsListXML);
+            System.out.println("POLineChargesXML: " + POLineChargesXML);
             formObject.clear("q_polines");
+            formObject.clear("q_linechargesdetails");
+            formObject.clear("q_qcnorms");
             formObject.NGAddListItem("q_polines", POLineContractXML);
-            try {
-                String businessunit = "", department = "", costcenter = "", costcentergroup = "", gla = "", poitemid = "";
-                ListView ListViewq_gateentrylines = (ListView) formObject.getComponent("q_gateentrylines");
-                int RowCountq_gateentrylines = ListViewq_gateentrylines.getRowCount();
-                System.out.println("RowCountq_gateentrylines + " + RowCountq_gateentrylines);
+            formObject.NGAddListItem("q_linechargesdetails", POLineChargesXML);
+            formObject.NGAddListItem("q_qcnorms", QCNormsListXML);
 
-                ListView ListViewq_polines = (ListView) formObject.getComponent("q_polines");
-                int RowCountq_polines = ListViewq_polines.getRowCount();
-                System.out.println("RowCountq_gateentrylines + " + RowCountq_polines);
-                for (int j = 0; j < RowCountq_polines; j++) {
-                    poitemid = formObject.getNGValue("q_polines", j, 1);
-                    for (int i = 0; i < RowCountq_gateentrylines; i++) {
-                        if (poitemid.equalsIgnoreCase(formObject.getNGValue("q_gateentrylines", i, 1))) {
-                            System.out.println("congrates ****");
-                            formObject.setNGValue("q_gateentrylines", i, 10, (formObject.getNGValue("q_polines", j, 12)));
-                            formObject.setNGValue("q_gateentrylines", i, 13, (formObject.getNGValue("q_polines", j, 13)));
-                            formObject.setNGValue("q_gateentrylines", i, 12, (formObject.getNGValue("q_polines", j, 14)));
-                            formObject.setNGValue("q_gateentrylines", i, 14, (formObject.getNGValue("q_polines", j, 15)));
-                            formObject.setNGValue("q_gateentrylines", i, 15, (formObject.getNGValue("q_polines", j, 16)));
-                            System.out.println("congrates exit****");
-                        }
+            int RowCountq_gateentrylines = formObject.getLVWRowCount("q_gateentrylines");
+            int RowCountq_polines = formObject.getLVWRowCount("q_polines");
+            for (int j = 0; j < RowCountq_polines; j++) {
+                for (int i = 0; i < RowCountq_gateentrylines; i++) {
+                    if (formObject.getNGValue("q_polines", j, 1).equalsIgnoreCase(formObject.getNGValue("q_gateentrylines", i, 1))) {
+                        System.out.println("congrates ****");
+                        formObject.setNGValue("q_gateentrylines", i, 10, (formObject.getNGValue("q_polines", j, 12)));
+                        formObject.setNGValue("q_gateentrylines", i, 13, (formObject.getNGValue("q_polines", j, 13)));
+                        formObject.setNGValue("q_gateentrylines", i, 12, (formObject.getNGValue("q_polines", j, 14)));
+                        formObject.setNGValue("q_gateentrylines", i, 14, (formObject.getNGValue("q_polines", j, 15)));
+                        formObject.setNGValue("q_gateentrylines", i, 15, (formObject.getNGValue("q_polines", j, 16)));
                     }
                 }
-            } catch (Exception e) {
-                System.out.println("Exception in adding line item :" + e);
             }
             return IsSuccess;
         } else {
             return ErrorMessage;
         }
+
     }
 
     public String parseServicePoOutputJSON(String POType, String content) throws JSONException {
@@ -314,11 +366,21 @@ public class CallPurchaseOrderService {
             formObject.setNGValue("loadingcity", objJSONObject.optString("LoadingCity"));
             formObject.setNGValue("businessunit", objJSONObject.optString("BusinessUnit"));
             formObject.setNGValue("site", objJSONObject.optString("Site"));
+            formObject.setNGValue("state", objJSONObject.optString("State"));
             formObject.setNGValue("department", objJSONObject.optString("Department"));
+            Query = "select CONCAT(Value,'-',Description) from Department where Value='" + formObject.getNGValue("department") + "'";
+            result = formObject.getDataFromDataSource(Query);
+            if (result.size() > 0) {
+                formObject.setNGValue("departmentdsc", result.get(0).get(0));
+            } else {
+                formObject.setNGValue("departmentdsc", "");
+            }
+
             formObject.setNGValue("deliveryterm", objJSONObject.optString("DeliveryTerm"));
-            formObject.setNGValue("paymentterm", objJSONObject.optString("PaymentTermId"));
+            formObject.setNGValue("paymenttermid", objJSONObject.optString("PaymentTermId"));
             formObject.setNGValue("msmestatus", objJSONObject.optString("MSMEStatus"));
             formObject.setNGValue("purchasestatus", objJSONObject.optString("PurchStatus"));
+            getsetPaymentTermMsmeStatus(objJSONObject.optString("VendorName"), objJSONObject.optString("PaymentTermId"), "paymentterm");
             String compositionScheme = objJSONObject.optString("CompositionScheme");
             if (compositionScheme.equalsIgnoreCase("1")) {
                 formObject.setNGValue("compositescheme", "Yes");
@@ -343,7 +405,7 @@ public class CallPurchaseOrderService {
             formObject.setNGValue("vendoraddress", objJSONArray_poLineList.getJSONObject(0).optString("VendorInvoiceAddress"));
             formObject.setNGValue("companyaddress", objJSONArray_poLineList.getJSONObject(0).optString("DeliveryAddress"));
             formObject.setNGValue("companytaxinformation", objJSONArray_poLineList.getJSONObject(0).optString("TaxInformation"));
-
+            formObject.setNGValue("vendorgstingdiuid", objJSONArray_poLineList.getJSONObject(0).optString("VendorGSTIN"));
             for (int i = 0; i < objJSONArray_poLineList.length(); i++) {
                 POLineContractXML = (new StringBuilder()).append(POLineContractXML).
                         append("<ListItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("LineNumber")).
@@ -423,10 +485,18 @@ public class CallPurchaseOrderService {
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("nonGST")).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("TaxRateType")).
                         append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("DeliveryRemainder")). //Remaining Quantity
+                        append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("Vendor")). //Vendor code
+                        append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("VendorName")). //Vendor Name  
+                        append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("State")). // State  
                         append("</SubItem></ListItem>").toString();
 
                 JSONArray objJSONArray_POLineCharges = objJSONArray_poLineList.getJSONObject(i).getJSONArray("POLineCharges");
                 for (int j = 0; j < objJSONArray_POLineCharges.length(); j++) {
+                    String chargesCode = objJSONArray_POLineCharges.getJSONObject(j).optString("chargesCode");
+                    if (chargesCode.contains("&")) {
+                        chargesCode = chargesCode.replace("&", "&amp;");
+                    }
+
                     POLineChargesXML = (new StringBuilder()).append(POLineChargesXML).
                             append("<ListItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("LineNumber")).
                             append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(i).optString("ItemNumber")).
@@ -436,15 +506,13 @@ public class CallPurchaseOrderService {
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("categoryENUM")).
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("categoryDescription")).
                             append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("chargesValue")).
-                            append("</SubItem><SubItem>").append(objJSONArray_POLineCharges.getJSONObject(j).optString("chargesCode")).
+                            append("</SubItem><SubItem>").append(chargesCode).
                             append("</SubItem><SubItem>").append(poNumber).
                             append("</SubItem></ListItem>").toString();
                 }
             }
-//            formObject.clear("q_polinedetails");
-//            formObject.clear("q_linechargesdetails");
             try {
-                System.out.println("Po Lien charges : " + POLineChargesXML);
+                System.out.println("Po Line charges : " + POLineChargesXML);
                 formObject.NGAddListItem("q_polinedetails", POLineContractXML);
                 formObject.NGAddListItem("q_linechargesdetails", POLineChargesXML);
             } catch (Exception e) {
@@ -492,12 +560,20 @@ public class CallPurchaseOrderService {
             formObject.setNGValue("currency", objJSONObject.optString("Currency"));
             formObject.setNGValue("vendorcredit", objJSONObject.optString("VendorCode"));
             formObject.setNGValue("paymenttermid", objJSONObject.optString("PaymentTermId"));
+          //  formObject.setNGValue("state", objJSONObject.optString("State"));
 
             //Set Line Details
             JSONArray objJSONArray_poLineList = objJSONObject.getJSONArray("poLineList");
             formObject.setNGValue("warehouse", objJSONArray_poLineList.getJSONObject(0).optString("InventoryWarehouse"));
             formObject.setNGValue("abs_warehouse", objJSONArray_poLineList.getJSONObject(0).optString("InventoryWarehouse"));
             formObject.setNGValue("department", objJSONArray_poLineList.getJSONObject(0).optString("Department"));
+            Query = "select CONCAT(Value,'-',Description) from Department where Value='" + formObject.getNGValue("department") + "'";
+            result = formObject.getDataFromDataSource(Query);
+            if (result.size() > 0) {
+                formObject.setNGValue("departmentdsc", result.get(0).get(0));
+            } else {
+                formObject.setNGValue("departmentdsc", "");
+            }
 
             formObject.setNGValue("vendortaxinformation", objJSONArray_poLineList.getJSONObject(0).optString("VendorTaxInformation"));
             formObject.setNGValue("vendoraddress", objJSONArray_poLineList.getJSONObject(0).optString("VendorInvoiceAddress"));
@@ -599,6 +675,7 @@ public class CallPurchaseOrderService {
 //                            append("</SubItem></ListItem>").toString();
 //                }
             }
+
             formObject.clear("q_polinedetails");
             formObject.clear("q_raabstractsheet");
             formObject.clear("q_raitemjournal");
@@ -623,27 +700,22 @@ public class CallPurchaseOrderService {
         String InvoiceLineContractXML = "", unitprice_poline = "", taxgroup_poline = "", discount_percent = "", discount_amount = "";
 
         formObject.clear("q_invoiceline");
-        ListView ListViewq_polines = (ListView) formObject.getComponent("q_polines");
-        int RowCountq_polines = ListViewq_polines.getRowCount();
+        int RowCountq_polines = formObject.getLVWRowCount("q_polines");
         System.out.println("RowCountq_polines : " + RowCountq_polines);
-
-        ListView ListViewq_invoiceline = (ListView) formObject.getComponent("q_invoiceline");
-        int RowCountq_invoiceline = ListViewq_invoiceline.getRowCount();
+        int RowCountq_invoiceline = formObject.getLVWRowCount("q_invoiceline");
         System.out.println("RowCountq_invoiceline : " + RowCountq_invoiceline);
-
-        ListView ListViewq_gateentrylines = (ListView) formObject.getComponent("q_gateentrylines");
-        int RowCountq_gateentrylines = ListViewq_gateentrylines.getRowCount();
+        int RowCountq_gateentrylines = formObject.getLVWRowCount("q_gateentrylines");
         System.out.println("RowCountq_gateentrylines : " + RowCountq_gateentrylines);
 
         for (int i = 0; i < RowCountq_gateentrylines; i++) {
             System.out.println("inside for loop$");
             getentry_lineno = formObject.getNGValue("q_gateentrylines", i, 0);
             getentry_itemno = formObject.getNGValue("q_gateentrylines", i, 1);
-            for (int j = 0; j <= RowCountq_invoiceline; j++) {
+            for (int j = 0; j < RowCountq_invoiceline; j++) {
                 System.out.println("inside inner for loop$");
                 invoice_lineno = formObject.getNGValue("q_invoiceline", i, 0);
                 invoice_itemno = formObject.getNGValue("q_invoiceline", i, 1);
-                if (getentry_lineno.equalsIgnoreCase(invoice_itemno) && getentry_itemno.equalsIgnoreCase(invoice_itemno)) {
+                if (invoice_itemno.equalsIgnoreCase(getentry_lineno) && invoice_itemno.equalsIgnoreCase(getentry_itemno)) {
                     invoicelinechecker = false;
                     System.out.println("false hohya");
                 }
@@ -701,5 +773,20 @@ public class CallPurchaseOrderService {
         }
         System.out.println("InvoiceLineContractXML--->outside for loop : " + InvoiceLineContractXML);
         formObject.NGAddListItem("q_invoiceline", InvoiceLineContractXML);
+    }
+
+    void getsetPaymentTermMsmeStatus(String VendorCode, String PaymentTermCode, String PaymentTermFieldId) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        System.out.println("inside getsetPaymentTermMsmeStatus ");
+        String PaymentTermDesc = "";
+        Query = "select PaymentTermDesc from PaymentTermMaster where PaymentTermCode = '" + PaymentTermCode + "'";
+        System.out.println("Query payment term " + Query);
+        result = formObject.getDataFromDataSource(Query);
+        if (result.size() > 0) {
+            System.out.println("Inside result");
+            PaymentTermDesc = result.get(0).get(0);
+        }
+        System.out.println("Payment Term Desc : " + PaymentTermDesc);
+        formObject.setNGValue(PaymentTermFieldId, PaymentTermCode + "_" + PaymentTermDesc);
     }
 }

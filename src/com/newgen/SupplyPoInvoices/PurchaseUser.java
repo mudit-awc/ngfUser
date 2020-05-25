@@ -6,6 +6,8 @@
  */
 package com.newgen.SupplyPoInvoices;
 
+import com.newgen.Webservice.CallGateentryService;
+import com.newgen.Webservice.CallPurchaseOrderService;
 import com.newgen.common.General;
 import com.newgen.omniforms.FormConfig;
 import com.newgen.omniforms.FormReference;
@@ -153,9 +155,24 @@ public class PurchaseUser implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objGeneral = new General();
         switch (pEvent.getType().name()) {
-            case "VALUE_CHANGED":
+            case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
-                    case "":
+                    case "btn_fetchpogedetails":
+                        String purchaseorderno = formObject.getNGValue("purchaseorderno");
+                        new CallGateentryService().GetSetGateEntry(
+                                purchaseorderno,
+                                formObject.getNGValue("invoiceno")
+                        );
+                        //  String AccessToken = new CallAccessTokenService().getAccessToken();
+                        new CallPurchaseOrderService().GetSetPurchaseOrder(
+                                "",
+                                "Supply",
+                                purchaseorderno,
+                                "Supply"
+                        );
+                        
+                        formObject.clear("q_taxdocument");
+                        formObject.clear("q_withholdingtax");
                         break;
                 }
                 break;

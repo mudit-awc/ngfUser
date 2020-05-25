@@ -114,7 +114,7 @@ public class Approver implements FormListener {
             formObject.addComboItem("filestatus", "Reject", "Reject");
         }
         formObject.addComboItem("filestatus", "Query Raise", "Query Raise");
-        formObject.addComboItem("filestatus", "Discard", "Discard");
+//        formObject.addComboItem("filestatus", "Discard", "Discard");
 
         Query = "select HeadName from ServiceNonPoHeadMaster order by HeadName asc";
         System.out.println("Query is " + Query);
