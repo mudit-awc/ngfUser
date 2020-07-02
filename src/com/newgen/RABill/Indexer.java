@@ -63,6 +63,7 @@ public class Indexer implements FormListener {
     @Override
     public void formPopulated(FormEvent fe) {
         formObject = FormContext.getCurrentInstance().getFormReference();
+        objGeneral = new General();
         System.out.println("inside form populated of indexer");
         formObject.clear("filestatus");
         Query = "select StateName from StateMaster order by StateCode asc";
@@ -79,32 +80,30 @@ public class Indexer implements FormListener {
             formObject.addComboItem("location", result.get(i).get(0).toString(), result.get(i).get(0).toString());
         }
 
-        String[] arr2 = processInstanceId.split("-");
-        String st = arr2[1];
-        String str = "";
-        for (int i = 0; i < st.length(); i++) {
-            if (st.charAt(i) == '0') {
-
-            } else {
-                str = str + st.charAt(i);
-            }
-        }
-        System.out.println("var " + str);
-        formObject.setNGValue("jointmeasurementcode", str);
-
+//        String[] arr2 = processInstanceId.split("-");
+//        String st = arr2[1];
+//        String str = "";
+//        for (int i = 0; i < st.length(); i++) {
+//            if (st.charAt(i) == '0') {
+//
+//            } else {
+//                str = str + st.charAt(i);
+//            }
+//        }
+//        System.out.println("var " + str);
+//        formObject.setNGValue("jointmeasurementcode", str);
         if (!formObject.getNGValue("previousactivity").equalsIgnoreCase("Approver")
                 && !formObject.getNGValue("previousactivity").equalsIgnoreCase("Accounts")) {
             System.out.println("inside if ");
-            formObject.addComboItem("filestatus", "Initiate", "Initiate");
-            formObject.addComboItem("filestatus", "Discard", "Discard");
-            formObject.addComboItem("filestatus", "Exception", "Exception");
+            formObject.addComboItem("filestatus", "Approve", "Approve");
+            formObject.addComboItem("filestatus", "Reject", "Reject");
+
         } else {
             System.out.println("inside else");
             formObject.addComboItem("filestatus", "Hold", "Hold");
             formObject.addComboItem("filestatus", "Query Cleared", "Query Cleared");
-            formObject.addComboItem("filestatus", "Discard", "Discard");
-            formObject.addComboItem("filestatus", "Exception", "Exception");
         }
+
     }
 
     @Override
@@ -122,7 +121,8 @@ public class Indexer implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         objGeneral = new General();
         String levelflag = formObject.getNGValue("levelflag");
-
+        String filestatus = formObject.getNGValue("filestatus");
+        System.out.println("Level Flag" + levelflag);
         Query = "select count(*) from ext_rabill ext, WFINSTRUMENTTABLE wf "
                 + "where ext.processid = wf.ProcessInstanceID "
                 + "and wf.ActivityName not in ('Discard' , 'End') "
@@ -138,14 +138,17 @@ public class Indexer implements FormListener {
                     formObject.getNGValue("fiscalyear"),
                     processInstanceId
             );
+            if (filestatus.equalsIgnoreCase("Approve")) {
+                objGeneral.checkRABillDoAUser(levelflag, "");
+                formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
+                formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
+                formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
 
-            objGeneral.checkRABillDoAUser(levelflag, "");
-            formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
-            formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
-            formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
+                formObject.setNGValue("previousactivity", activityName);
 
-            formObject.setNGValue("previousactivity", activityName);
+            }
             objAccountsGeneral.getsetRABILLSummary(processInstanceId);
+
             objGeneral.maintainHistory(
                     userName,
                     activityName,
@@ -330,23 +333,24 @@ public class Indexer implements FormListener {
                         break;
 
                     case "filestatus":
-                        System.out.println("inside value change of file status");
                         String filestatus = formObject.getNGValue("filestatus");
                         if (filestatus.equalsIgnoreCase("Exception")) {
-                            System.out.println("inside if");
                             formObject.setVisible("Label58", true);
                             formObject.setVisible("Combo1", true);
-                            //to add the values in combo box
-                            formObject.addComboItem("Combo1", "PO number not mentioned on invoice", "PO number not mentioned on invoice");
-                            formObject.addComboItem("Combo1", "Incorrect PO number on invoice", "Incorrect PO number on invoice");
-                            formObject.addComboItem("Combo1", "Invoice Number not mentioned on invoice", "Invoice Number not mentioned on invoice");
-                            formObject.addComboItem("Combo1", "Incorrect invoice number on invoice", "Incorrect invoice number on invoice");
-                            formObject.addComboItem("Combo1", "Incorrect details of Wonder Cement on invoice", "Incorrect details of Wonder Cement on invoice");
-                            formObject.addComboItem("Combo1", "Mismatch of vendor name in invoice and PO", "Mismatch of vendor name in invoice and PO");
+                            Query = "select ExceptionName from ExceptionMaster";
+                            System.out.println("query is :" + Query);
+                            result = formObject.getDataFromDataSource(Query);
+                            for (int i = 0; i < result.size(); i++) {
+                                formObject.addComboItem("Combo1", result.get(i).get(0), result.get(i).get(0));
+                            }
 
+                        } else {
+                            formObject.clear("Combo1");
+                            formObject.setVisible("Label58", false);
+                            formObject.setVisible("Combo1", false);
                         }
-                        break;
 
+                        break;
                     case "ij_projectcode":
                         if (!formObject.getNGValue("ij_projectcode").equalsIgnoreCase("")) {
                             Query = "select remainingqty from cmplx_raabstractsheet "
@@ -356,12 +360,12 @@ public class Indexer implements FormListener {
                             formObject.setNGValue("ij_location", formObject.getNGValue("location"));
                             formObject.setNGValue("ij_sitecode", formObject.getNGValue("site"));
                             formObject.setNGValue("ij_warehousecode", formObject.getNGValue("warehouse"));
-                            Query = "select concat(sitecode,'-',sitename) from SiteMaster "
+                            Query = "select concat(sitecode,'_',sitename) from SiteMaster "
                                     + "where SiteCode = '" + formObject.getNGValue("ij_sitecode") + "'";
                             result = formObject.getDataFromDataSource(Query);
                             formObject.setNGValue("ij_site", result.get(0).get(0));
 
-                            Query = "select concat(cast(warehousecode as varchar),'-',warehousename) "
+                            Query = "select concat(cast(warehousecode as varchar),'_',warehousename) "
                                     + "from WarehouseMaster where WarehouseCode = '" + formObject.getNGValue("ij_warehousecode") + "'";
                             result = formObject.getDataFromDataSource(Query);
                             formObject.setNGValue("ij_warehouse", result.get(0).get(0));
@@ -556,7 +560,10 @@ public class Indexer implements FormListener {
                         break;
 
                     case "Pick_configuration":
-                        Query = "select ItemCode,CofigurationCode from ItemConfigurationMaster";
+                        if (formObject.getNGValue("ij_itemno").equalsIgnoreCase("")) {
+                            throw new ValidatorException(new FacesMessage("Kindly select the Item Number", ""));
+                        }
+                        Query = "select ItemCode,CofigurationCode from ItemConfigurationMaster where ItemCode ='" + formObject.getNGValue("ij_itemno") + "'";
                         objPicklistListenerHandler.openPickList("ij_configuration", "Item Code,Configuration Code", "Configuration Master", 70, 70, Query);
                         break;
 
@@ -573,6 +580,14 @@ public class Indexer implements FormListener {
                     case "Pick_projectcategory":
                         Query = "select ProjCategoryCode,ProjCategoryDesc from ProjectCategoryMaster order by ProjCategoryDesc asc";
                         objPicklistListenerHandler.openPickList("ij_projectcategory", "Code,Category", "Project Category Master", 70, 70, Query);
+                        break;
+
+                    case "Btn_Export_AbstractSheet":
+                        objGeneral.openbamreport("AbstractSheet");
+                        break;
+
+                    case "Btn_Export_ItemJournal":
+                        objGeneral.openbamreport("ItemJournal");
                         break;
                 }
                 break;

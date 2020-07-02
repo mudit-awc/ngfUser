@@ -80,8 +80,10 @@ public class Accounts implements FormListener {
         formObject.clear("filestatus");
         System.out.println("2");
         formObject.addComboItem("filestatus", "Approved", "Approved");
+        formObject.addComboItem("filestatus", "Reject", "Reject");
         formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
         formObject.addComboItem("filestatus", "Exception", "Exception");
+
         System.out.println("3");
         String currentdate = objGeneral.getCurrentDate();
         System.out.println("currentdate : " + currentdate);
@@ -166,7 +168,8 @@ public class Accounts implements FormListener {
                 objGeneral.setException(userName, "Combo1", "Text69");
                 formObject.setNGValue("nextactivity", "PurchaseUser");
             }
-
+            System.out.println("value set at accountsmaker RA bIll");
+            formObject.setNGValue("accountsmaker", userName);
         } else if (activityName.equalsIgnoreCase("AccountsChecker")) {
             if (filestatus.equalsIgnoreCase("Reject")) {
                 formObject.setNGValue("FilterDoA_ApproverLevel", "AccountsMaker");
@@ -218,6 +221,7 @@ public class Accounts implements FormListener {
         objPicklistListenerHandler = new PicklistListenerHandler();
         objCalculations = new Calculations();
         objAccountsGeneral = new AccountsGeneral();
+        objGeneral = new General();
         switch (pEvent.getType().name()) {
             case "VALUE_CHANGED":
                 switch (pEvent.getSource().getName()) {
@@ -236,19 +240,19 @@ public class Accounts implements FormListener {
                         if (filestatus.equalsIgnoreCase("Exception")) {
                             formObject.setVisible("Label58", true);
                             formObject.setVisible("Combo1", true);
-                            formObject.addComboItem("Combo1", "PO number not mentioned on invoice", "PO number not mentioned on invoice");
-                            formObject.addComboItem("Combo1", "Incorrect PO number on invoice", "Incorrect PO number on invoice");
-                            formObject.addComboItem("Combo1", "Invoice Number not mentioned on invoice", "Invoice Number not mentioned on invoice");
-                            formObject.addComboItem("Combo1", "Incorrect invoice number on invoice", "Incorrect invoice number on invoice");
-                            formObject.addComboItem("Combo1", "Incorrect details of Wonder Cement on invoice", "Incorrect details of Wonder Cement on invoice");
-                            formObject.addComboItem("Combo1", "Mismatch of vendor name in invoice and PO", "Mismatch of vendor name in invoice and PO");
-                            formObject.addComboItem("Combo1", "Quantity and Rate Variance between PO and Invoice", "Quantity and Rate Variance between PO and Invoice");
-                            formObject.addComboItem("Combo1", "GST Rate is not matching", "GST Rate is not matching");
-                            formObject.addComboItem("Combo1", "GST categorization is not matching", "GST categorization is not matching");
-                            formObject.addComboItem("Combo1", "Mismatch of HSN Code between PO and Invoice", "Mismatch of HSN Code between PO and Invoice");
-                            formObject.addComboItem("Combo1", "Budget Related Exception", "Budget Related Exception");
-                            formObject.addComboItem("Combo1", "Invoice value is more than the PO value", "Invoice value is more than the PO value");
+                            Query = "select ExceptionName from ExceptionMaster";
+                            System.out.println("query is :" + Query);
+                            result = formObject.getDataFromDataSource(Query);
+                            for (int i = 0; i < result.size(); i++) {
+                                formObject.addComboItem("Combo1", result.get(i).get(0), result.get(i).get(0));
+                            }
+
+                        } else {
+                            formObject.clear("Combo1");
+                            formObject.setVisible("Label58", false);
+                            formObject.setVisible("Combo1", false);
                         }
+
                         break;
 
                     case "vendoramount":
@@ -317,7 +321,7 @@ public class Accounts implements FormListener {
                         if (exempt.equalsIgnoreCase("true")) {
                             formObject.setNGValue("qratd_taxamount", "0");
                             formObject.setNGValue("qratd_taxamountadjustment", "0");
-                            formObject.setLocked("qtd_taxamountadjustment", true);
+                            formObject.setLocked("qratd_taxamountadjustment", true);
                         } else {
                             String Query = "select projectdebitamount from cmplx_linejournal where "
                                     + "pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "' "
@@ -329,7 +333,7 @@ public class Accounts implements FormListener {
                             );
                             formObject.setNGValue("qratd_taxamount", taxamount);
                             formObject.setNGValue("qratd_taxamountadjustment", taxamount);
-                            formObject.setLocked("qtd_taxamountadjustment", false);
+                            formObject.setLocked("qratd_taxamountadjustment", false);
                         }
                         break;
 
@@ -438,13 +442,11 @@ public class Accounts implements FormListener {
                         break;
 
                     case "Btn_Export_AbstractSheet":
-                        System.out.println("Inside AbstractSheet");
-                        bam_report("AbstractSheet");
+                        objGeneral.openbamreport("AbstractSheet");
                         break;
 
                     case "Btn_Export_ItemJournal":
-                        System.out.println("Inside ItemJournal");
-                        bam_report("ItemJournal");
+                        objGeneral.openbamreport("ItemJournal");
                         break;
                 }
                 break;
@@ -541,7 +543,7 @@ public class Accounts implements FormListener {
                                                             append("<ListItem><SubItem>").append(""). //line number
                                                             append("</SubItem><SubItem>").append(result.get(j).get(0)). //item number
                                                             //  append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
-                                                            append("</SubItem><SubItem>").append(""). //gstingdiuid
+                                                            append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
                                                             append("</SubItem><SubItem>").append(""). //hsnsac type
                                                             append("</SubItem><SubItem>").append(""). //hsnsac code
                                                             append("</SubItem><SubItem>").append(""). //hsnsac description
@@ -565,7 +567,7 @@ public class Accounts implements FormListener {
                                                         append("<ListItem><SubItem>").append(""). //line number
                                                         append("</SubItem><SubItem>").append(result.get(j).get(0)). //item number
                                                         //  append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
-                                                        append("</SubItem><SubItem>").append(""). //gstingdiuid
+                                                        append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
                                                         append("</SubItem><SubItem>").append(""). //hsnsac type
                                                         append("</SubItem><SubItem>").append(""). //hsnsac code
                                                         append("</SubItem><SubItem>").append(""). //hsnsac description
@@ -751,22 +753,5 @@ public class Accounts implements FormListener {
 
             System.out.println("Values updated");
         }
-    }
-
-    void bam_report(String Report_name) {
-        formConfig = FormContext.getCurrentInstance().getFormConfig();
-    //    System.out.println(formConfig.getConfigXML());
-        hm = new HashMap<>();
-        UserIndex = formConfig.getConfigElement("UserIndex");
-        ip = formConfig.getConfigElement("ServletPath");
-        ip = ip.split("webdesktop")[0];
-        ip1 = ip.replaceAll("//", "/");
-        Query = "select REPORTID from CRREPORTTABLE where REPORTNAME = '" + Report_name + "'";
-        result = formObject.getDataFromDataSource(Query);
-        String Link = "" + ip + "bam/login/login.jsf?CalledFrom=EXT&UserId=" + userName + "&UserIndex=" + UserIndex + "&SessionId=" + sessionId + "&CabinetName=" 	
-                + "" + engineName + "&processInstanceId=" + processInstanceId + "&LaunchClient=RI&ReportIndex=" + result.get(0).get(0) + "&AjaxRequest=Y&OAPDomHost=" + ip1.split("/")[1] + "&ProcessInstanceId="
-                + processInstanceId + "";
-        System.out.println("Moving to client js ");
-        throw new ValidatorException(new CustomExceptionHandler(Report_name, Link, "", hm));
     }
 }

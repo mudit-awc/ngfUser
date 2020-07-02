@@ -113,24 +113,25 @@ public class Approver implements FormListener {
         formObject.setSheetVisible("Tab1", 4, false);
         formObject.setNGValue("filestatus", "");
         formObject.clear("filestatus");
+        formObject.setNGValue("filestatus", "");
         formObject.addComboItem("filestatus", "Approved", "Approved");
+        if (!formObject.getNGValue("levelflag").equals("1")) {
+            formObject.addComboItem("filestatus", "Reject", "Reject");
+        }
         formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
 
-//        Query = "select calculatewithholdingtax,TDSGroup from VendorMaster where VendorCode	= '" + formObject.getNGValue("accountcode") + "'";
-//        result = formObject.getDataFromDataSource(Query);
-//        if (result.size() > 0) {
-//            if (result.get(0).get(0).equalsIgnoreCase("0")) {
-//                formObject.setSheetVisible("Tab1", 5, false);
-//            } else {
-//                formObject.setSheetVisible("Tab1", 5, true);
-//            }
-//        }
         Query = "select sitecode from sitemaster order by sitecode asc";
         System.out.println("Query is " + Query);
         result = formObject.getDataFromDataSource(Query);
         System.out.println("result is" + result);
         for (int i = 0; i < result.size(); i++) {
             formObject.addComboItem("site", result.get(i).get(0), result.get(i).get(0));
+        }
+
+        if (formObject.getNGValue("levelflag").equalsIgnoreCase("1")) {
+            if (formObject.getNGValue("order_type").equalsIgnoreCase("SalesOrder")) {
+                formObject.setEnabled("q_AdjustedShortageValue", true);
+            }
         }
     }
 
@@ -165,49 +166,20 @@ public class Approver implements FormListener {
         System.out.println("**********-------SUBMIT FORM Started------------*************");
         objGeneral = new General();
         AccountsGeneral gen = new AccountsGeneral();
-        gen.getsetOutwardFreightSummary(processInstanceId);
-        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag")) + 1;
+
         String sQuery = "", nextactivity = "", strLevelFlag = "";
         String filestatus = formObject.getNGValue("filestatus");
+        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag"));
         if (filestatus.equalsIgnoreCase("Approved")) {
-            Query = "select count(*) from FreightBillApproverMaster "
-                    + "where site = '" + formObject.getNGValue("site") + "' "
-                    + "and state = '" + formObject.getNGValue("state") + "' "
-                    + "and department = '" + formObject.getNGValue("department") + "' ";
-            sQuery = Query + "and ApproverLevel = '" + levelflag + "' ";
-            System.out.println("Query: " + sQuery);
-            result = formObject.getDataFromDataSource(sQuery);
-            if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                sQuery = "";
-                sQuery = Query + "and ApproverLevel = 'Maker'";
-                System.out.println("Query: " + sQuery);
-                result = formObject.getDataFromDataSource(sQuery);
-                if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                    sQuery = "";
-                    sQuery = Query + "and ApproverLevel = 'Checker'";
-                    System.out.println("Query: " + sQuery);
-                    result = formObject.getDataFromDataSource(sQuery);
-                    if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                        throw new ValidatorException(new FacesMessage("No Approver and Account Maker/Checker defined in the DoA."));
-                    } else {
-                        strLevelFlag = "Checker";
-                        nextactivity = "Accounts";
-                    }
-                } else {
-                    strLevelFlag = "Maker";
-                    nextactivity = "Accounts";
-                }
-            } else {
-                strLevelFlag = String.valueOf(levelflag);
-                nextactivity = "Approver";
-            }
+            levelflag = levelflag + 1;
+            objGeneral.checkOutwardFreightDoAUser(String.valueOf(levelflag), "Approver");
         } else if (filestatus.equalsIgnoreCase("Query Raised")) {
-            nextactivity = "Initiator";
+            levelflag = levelflag - 1;
+            formObject.setNGValue("FilterDoA_ApproverLevel", levelflag);
+            formObject.setNGValue("levelflag", levelflag);
         }
-        formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
-        formObject.setNGValue("levelflag", strLevelFlag);
-        formObject.setNGValue("nextactivity", nextactivity);
         formObject.setNGValue("previousactivity", activityName);
+        gen.getsetOutwardFreightSummary(processInstanceId);
         objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("exempt"), "q_transactionhistory");
     }
 

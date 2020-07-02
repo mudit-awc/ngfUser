@@ -166,8 +166,10 @@ public class Approver implements FormListener {
         formObject.setNGValue("filestatus", "");
         formObject.clear("filestatus");
         formObject.addComboItem("filestatus", "Approved", "Approved");
+        if (!formObject.getNGValue("levelflag").equals("1")) {
+            formObject.addComboItem("filestatus", "Reject", "Reject");
+        }
         formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
-
         try {
             Query = "select StateCode from StateMaster order by StateCode asc";
             System.out.println("Query is " + Query);

@@ -133,22 +133,22 @@ public class Initiator implements FormListener {
                         System.out.println("Inside pick journal");
                         Query = "select code,Description from JournalNamemaster order by code asc";
                         System.out.println("Query :" + Query);
-                        objPicklistListenerHandler.openPickList("journalname", "Code,Description", "Journal Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("journalname", "Code,Description", "Journal Master", 150, 500, Query);
                         break;
 
                     case "Pick_department":
                         Query = "select value,description from department order by description asc";
-                        objPicklistListenerHandler.openPickList("departmentdsc", "Code,Description", "Department Master", 35, 35, Query);
+                        objPicklistListenerHandler.openPickList("departmentdsc", "Code,Description", "Department Master", 150, 500, Query);
                         break;
 
                     case "Pick_account":
                         String accounttype = formObject.getNGValue("accounttype");
                         if (accounttype.equalsIgnoreCase("Vendor")) {
                             Query = "select VendorCode,VendorName from VendorMaster order by VendorCode asc";
-                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Vendor Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Vendor Master", 150, 500, Query);
                         } else if (accounttype.equalsIgnoreCase("Customer")) {
                             Query = "select Code,Description from CustomerMaster order by Code asc";
-                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Customer Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Customer Master", 150, 500, Query);
                         } else {
                             throw new ValidatorException(new FacesMessage("Kindly select the account type value"));
                         }
@@ -156,7 +156,7 @@ public class Initiator implements FormListener {
 
                     case "Pick_paymentterm":
                         Query = "select PaymentTermCode,PaymentTermDesc from PaymentTermMaster";
-                        objPicklistListenerHandler.openPickList("paymentterm", "Code,Description", "Payment Term Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("paymentterm", "Code,Description", "Payment Term Master", 150, 500, Query);
                         break;
                 }
                 break;
@@ -225,12 +225,7 @@ public class Initiator implements FormListener {
             formObject.addComboItem("filestatus", "Query Cleared", "Query Cleared");
         }
         formObject.addComboItem("filestatus", "Discard", "Discard");
-
-        System.out.println("InvAmountEx :" + formObject.getNGValue("invoiceamountex"));
-        if (formObject.getNGValue("invoiceamount").equals("")) {
-            formObject.setNGValue("invoiceamount", formObject.getNGValue("invoiceamountex"));
-        }
-
+        objGeneral.setInvoiceExtractedData("", "invoicenumber", "invoiceamount", "invoicedate");
         formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
         formObject.setNGDateRange("duedate", null, new Date(objGeneral.getCurrDateForRange()));
     }
@@ -273,8 +268,9 @@ public class Initiator implements FormListener {
                 formObject.getNGValue("fiscalyear"),
                 processInstanceId
         );
-
-        objGeneral.checkServiceNonPoDoAUser(levelflag, "");
+        if (!formObject.getNGValue("filestatus").equalsIgnoreCase("Discard")) {
+            objGeneral.checkServiceNonPoDoAUser(levelflag, "");
+        }
         formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
         formObject.setNGValue("FilterDoA_Head", formObject.getNGValue("proctype"));
         formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
@@ -290,7 +286,8 @@ public class Initiator implements FormListener {
                 formObject.getNGValue("Text51"),
                 "q_transactionhistory"
         );
-
+        formObject.setNGValue("VendorCode", formObject.getNGValue("accountcode"));
+        formObject.setNGValue("VendorName", formObject.getNGValue("accountname"));
     }
 
     @Override

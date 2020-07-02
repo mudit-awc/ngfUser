@@ -158,7 +158,25 @@ public class Calculations implements Serializable {
             System.out.println("Inside !INR");
             formObject.setNGValue(newbaseamountId, baseamount);
             formObject.setEnabled(exchangerateId, true);
-            formObject.setNGValue(exchangerateId, "");
+            formObject.setNGValue(exchangerateId, "0");
+        } else {
+            formObject.setEnabled(exchangerateId, false);
+            formObject.setNGValue(newbaseamountId, baseamount);
+            formObject.setNGValue(exchangerateId, "0");
+        }
+    }
+    
+    public void exronCurrencyChangePoProcess(String currencyId, String baseamountId, String newbaseamountId, String exchangerateId) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        System.out.println("Inside exr currency change: ");
+        String currency = formObject.getNGValue(currencyId);
+        String baseamount = formObject.getNGValue(baseamountId);
+        System.out.println("Currency: " + currency + " Base" + baseamount);
+        if (!currency.equalsIgnoreCase("INR")) {
+            System.out.println("Inside !INR");
+            formObject.setNGValue(newbaseamountId, baseamount);
+            formObject.setEnabled(exchangerateId, true);
+//            formObject.setNGValue(exchangerateId, "");
         } else {
             formObject.setEnabled(exchangerateId, false);
             formObject.setNGValue(newbaseamountId, baseamount);

@@ -67,9 +67,16 @@ public class Approver implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         formObject.setNGValue("filestatus", "");
         formObject.clear("filestatus");
-        formObject.addComboItem("filestatus", "Approved", "Approved");
-        formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
-        formObject.addComboItem("filestatus", "Discard", "Discard");
+        if ("1".equals(formObject.getNGValue("levelflag"))) {
+            formObject.addComboItem("filestatus", "Approved", "Approved");
+            formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
+        } else {
+            formObject.addComboItem("filestatus", "Approved", "Approved");
+            formObject.addComboItem("filestatus", "Reject", "Reject");
+            formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
+        }
+
+//        formObject.addComboItem("filestatus", "Discard", "Discard");
         try {
             Query = "select StateName from StateMaster order by StateCode asc";
             System.out.println("Query is " + Query);
@@ -143,17 +150,24 @@ public class Approver implements FormListener {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objAccountsGeneral = new AccountsGeneral();
+        objGeneral = new General();
+        System.out.println("general class onject");
         switch (pEvent.getType().name()) {
-
-            case "VALUE_CHANGED":
-                switch (pEvent.getSource().getName()) {
-                }
-                break;
-
+                
             case "MOUSE_CLICKED":
+                System.out.println("Inside mouse cick");
                 switch (pEvent.getSource().getName()) {
-                }
 
+                    case "Btn_Export_AbstractSheet":
+                        System.out.println("abstract sheet report");
+                        objGeneral.openbamreport("AbstractSheet");
+                        break;
+
+                    case "Btn_Export_ItemJournal":
+                        System.out.println("item journal report");   
+                        objGeneral.openbamreport("ItemJournal");
+                        break;
+                }
                 break;
 
             case "TAB_CLICKED":

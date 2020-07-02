@@ -25,7 +25,10 @@ public class RABill implements IFormListenerFactory {
         sActivityName = objConfig.getConfigElement("ActivityName");
         System.out.println("**********sActivityName :" + sActivityName);
 
-        if (sActivityName.equalsIgnoreCase("Indexer")) {
+        if (sActivityName.equalsIgnoreCase("ScanningUser")){
+            return new ScanningUser();
+        }
+        else if (sActivityName.equalsIgnoreCase("Indexer")) {
             return new Indexer();
         } else if (sActivityName.equalsIgnoreCase("Approver")) {
             return new Approver();

@@ -308,6 +308,15 @@ public class QualityUser implements FormListener {
         String qualitystatus = formObject.getNGValue("qualitystatus");
         String itemtypeflag = formObject.getNGValue("itemtypeflag");
 
+        if (activityName.equalsIgnoreCase("QualityMaker")) {
+            formObject.setNGValue("qualitymaker", userName);
+        }
+        if (activityName.equalsIgnoreCase("QualityChecker")) {
+            formObject.setNGValue("qualitychecker", userName);
+            formObject.setNGValue("qualitycheckerapprovaldate", objGeneral.getCurrentDate());
+            System.out.println("currents date == " + objGeneral.getCurrentDate());
+        }
+
         if (qualitystatus.equalsIgnoreCase("Accepted")) {
             if (itemtypeflag.equalsIgnoreCase("PP Bags")) {
                 Query = "select count(*) from PDBDocument where name = 'PPBags' "
@@ -353,6 +362,8 @@ public class QualityUser implements FormListener {
                 "q_transactionhistory"
         );
         formObject.setNGValue("previousactivity", activityName);
+        formObject.setNGValue("TransporterCode1", formObject.getNGValue("transportercode"));
+        formObject.setNGValue("TransporterName1", formObject.getNGValue("transportername"));
     }
 
     @Override

@@ -66,7 +66,13 @@ public class Purchase implements FormListener {
 
             case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
+                    case "Btn_Export_AbstractSheet":
+                        objGeneral.openbamreport("AbstractSheet");
+                        break;
 
+                    case "Btn_Export_ItemJournal":
+                        objGeneral.openbamreport("ItemJournal");
+                        break;
                 }
                 break;
         }

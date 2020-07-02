@@ -38,7 +38,7 @@ public class CallCLMSService {
     ReadProperty objReadProperty = null;
     String webserviceStatus;
 
-    public void GetSetCLMSS(String InvoiceNO, String PONumber) {
+    public void GetSetCLMSS(String PONumber, String InvoiceNO) {
         formObject = FormContext.getCurrentInstance().getFormReference();
         System.out.println("inside GetSetCLMSS function");
         try {
@@ -76,7 +76,8 @@ public class CallCLMSService {
     private String parseClmsOutputJSON(String content) throws JSONException {
         formObject = FormContext.getCurrentInstance().getFormReference();
         System.out.println("inside parseClmsOutputJSON @");
-        String ClmsContractXML = "", invoicedetailsLineNo = "", invoicedetailsItemNo = "", invoicedetailsQuantity = "";
+        String ClmsContractXML = "", invoicedetailsLineNo = "", invoicedetailsItemNo = "", invoicedetailsQuantity = "", discount_percent = "",
+                discount_amount = "";
         Calculations objCalculations = new Calculations();
         String getentry_lineno = "", getentry_itemno = "", invoice_lineno = "", invoice_itemno = "";
         //  Boolean invoicelinechecker = true;
@@ -97,6 +98,7 @@ public class CallCLMSService {
             System.out.println("inside trueeeeeeeee");
             JSONArray objJSONArray_poLineList = objJSONObject.getJSONArray("_365InvoicCreationLineItems");
             System.out.println("objJSONArray_poLineList.length() " + objJSONArray_poLineList.length());
+
             for (int j = 0; j < objJSONArray_poLineList.length(); j++) {
                 invoicedetailsLineNo = objJSONArray_poLineList.getJSONObject(j).optString("LineNo");
                 invoicedetailsItemNo = objJSONArray_poLineList.getJSONObject(j).optString("ItemNo");
@@ -104,10 +106,27 @@ public class CallCLMSService {
 
                 for (int t = 0; t < RowCountq_polinedetails; t++) {
                     if (invoicedetailsLineNo.equalsIgnoreCase(formObject.getNGValue("q_polinedetails", t, 0)) && invoicedetailsItemNo.equalsIgnoreCase(formObject.getNGValue("q_polinedetails", t, 1))) {
-                        System.out.println("both are same");
-                        unitprice_poline = formObject.getNGValue("q_polinedetails", t, 2);
+                        System.out.println("both are same FA");
+                        unitprice_poline = formObject.getNGValue("q_polinedetails", t, 5);
                         taxgroup_poline = formObject.getNGValue("q_polinedetails", t, 16);
+                        discount_percent = formObject.getNGValue("q_polinedetails", t, 5);
                         String calculatedvalues[] = objCalculations.calculateLineTotalWithTax(invoicedetailsQuantity, unitprice_poline, taxgroup_poline).split("/");
+                        String discountamount = "0";
+                        if (!discount_percent.equalsIgnoreCase("")
+                                || !discount_percent.equalsIgnoreCase("0.0")
+                                || !discount_percent.equalsIgnoreCase("0")) {
+                            System.out.println("Inside qpo_discountpercent : " + discount_percent);
+                            discountamount = objCalculations.calculatePercentAmount(calculatedvalues[0], discount_percent);
+                        } else {
+                            System.out.println("Inside else qpo_discountpercent");
+                            discountamount = discount_amount;
+                        }
+                        System.out.println("Discout Amount :" + discountamount);
+
+                      //  discount_amount = formObject.getNGValue("q_polinedetails", t, 5);
+                        System.out.println("taxgroup_poline :" + taxgroup_poline);
+
+                        System.out.println("before xml :" + calculatedvalues[0] + "," + calculatedvalues[1] + "" + calculatedvalues[2] + "," + calculatedvalues[3]);
                         ClmsContractXML = (new StringBuilder()).append(ClmsContractXML).
                                 append("<ListItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(j).optString("LineNo")).
                                 append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(j).optString("ItemNo")).
@@ -115,18 +134,19 @@ public class CallCLMSService {
                                 append("</SubItem><SubItem>").append(objJSONArray_poLineList.getJSONObject(j).optString("Quantity")).
                                 append("</SubItem><SubItem>").append(unitprice_poline).
                                 append("</SubItem><SubItem>").append(calculatedvalues[1]).
-                                append("</SubItem><SubItem>").append("").
-                                append("</SubItem><SubItem>").append("").
-                                append("</SubItem><SubItem>").append(calculatedvalues[3]).
-                                append("</SubItem><SubItem>").append(calculatedvalues[2]).
+                                append("</SubItem><SubItem>").append(discount_percent).//discount percent
+                                append("</SubItem><SubItem>").append(discount_amount).//discount amount
+                                append("</SubItem><SubItem>").append(calculatedvalues[0]).
                                 append("</SubItem><SubItem>").append(calculatedvalues[0]).
                                 append("</SubItem><SubItem>").append("").
                                 append("</SubItem><SubItem>").append(formObject.getNGValue("ponumber")).
                                 append("</SubItem></ListItem>").toString();
+                        System.out.println("clmscntrctxml: " + ClmsContractXML);
                     }
                 }
             }
             try {
+                System.out.println("ClmsContractXML : " + ClmsContractXML);
                 formObject.NGAddListItem("q_invoicedetails", ClmsContractXML);
 
             } catch (Exception e) {

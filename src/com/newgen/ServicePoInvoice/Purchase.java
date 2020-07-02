@@ -67,18 +67,41 @@ public class Purchase implements FormListener {
                         if (null == ListViewq_othercharges.getSelectedRowIndex()) {
                             throw new ValidatorException(new FacesMessage("Kindly select the Purchase order number", ""));
                         } else {
+                            System.out.println("inside else");
                             int selectedRowIndex = ListViewq_othercharges.getSelectedRowIndex();
-                            formObject.clear("q_polinedetails");
+                          
+                            System.out.println("row COunt q_polinedetails:  " + formObject.getLVWRowCount("q_polinedetails"));
+                            int rowcount = formObject.getLVWRowCount("q_polinedetails");
+                            int rowcount1 = formObject.getLVWRowCount("q_multiplepo");
+                            if (rowcount1 == 1) {
+                                formObject.clear("q_polinedetails");
+                            } else {
+
+                                for (int i = 0; i < rowcount; i++) {
+                                    if (formObject.getNGValue("q_polinedetails", i, 73).equalsIgnoreCase(formObject.getNGValue("q_multiplepo", selectedRowIndex, 0))) {
+                                        System.out.println("po number: " + formObject.getNGValue("q_polinedetails", i, 73));
+                                        formObject.setSelectedIndex("q_polinedetails", i);
+                                        formObject.ExecuteExternalCommand("NGDeleteRow", "q_polinedetails");
+                                        rowcount--;
+                                        i--;
+                                        System.out.println("line no deleted " + i);
+                                    }
+                                }
+
+                            }
+                           
                             new CallPurchaseOrderService().GetSetPurchaseOrder(
                                     "",
-                                    "ServiceRefresh",
+                                    "Service",
                                     formObject.getNGValue("q_multiplepo", selectedRowIndex, 0),
                                     "Service"
                             );
-                        }
 
+                        }
+                        System.out.println("After else");
                         formObject.clear("q_taxdocument");
                         formObject.clear("q_withholdingtax");
+                        formObject.clear("q_invoicedetails");
                         break;
                 }
                 break;

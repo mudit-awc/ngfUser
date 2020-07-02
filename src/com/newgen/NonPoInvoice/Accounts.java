@@ -190,24 +190,25 @@ public class Accounts implements FormListener {
                         }
 
                         boolean rowexist = false;
-                        ListView listview1 = (ListView) formObject.getComponent("q_ledgerlinedetails");
-                        int rowcount1 = listview1.getRowCount();
-                        for (int j = 0; j <= rowcount1; j++) {
-                            if (formObject.getNGValue("q_ledgeraccount").
-                                    equalsIgnoreCase(formObject.getNGValue("q_ledgerlinedetails", j, 0))) {
-                                rowexist = true;
-                                break;
-                            }
-                        }
-                        if (rowexist) {
-                            throw new ValidatorException(new FacesMessage("This Ledger Account has been already added to the listview"));
-                        } else {
-                            updateTDSvalue(); /*Add code to update tds value in case of change*/
 
-                            formObject.ExecuteExternalCommand("NGAddRow", "q_ledgerlinedetails");
+                        int rowcount1 = formObject.getLVWRowCount("q_ledgerlinedetails");
+//                        for (int j = 0; j <= rowcount1; j++) {
+//                            if (formObject.getNGValue("q_ledgeraccount"). //need to 
+//                                    equalsIgnoreCase(formObject.getNGValue("q_ledgerlinedetails", j, 0))) {
+//                                rowexist = true;
+//                                break;
+//                            }
+//                        }
+//                        if (rowexist) {
+//                            throw new ValidatorException(new FacesMessage("This Ledger Account has been already added to the listview"));
+//                        } else {
+                        updateTDSvalue(); /*Add code to update tds value in case of change*/
+
+                        formObject.setNGValue("q_linenumber", rowcount1 + 1);
+                        formObject.ExecuteExternalCommand("NGAddRow", "q_ledgerlinedetails");
 //                            objAccountsGeneral.refreshTaxDocument(processInstanceId);
-                            formObject.RaiseEvent("WFSave");
-                        }
+                        formObject.RaiseEvent("WFSave");
+                        // }
                         break;
 
                     case "Btn_Modify_LedgerLines":
@@ -224,6 +225,9 @@ public class Accounts implements FormListener {
                         formObject.ExecuteExternalCommand("NGDeleteRow", "q_ledgerlinedetails");
                         objAccountsGeneral.refreshTaxDocument(processInstanceId);
                         formObject.RaiseEvent("WFSave");
+                        DeletingLedgerline();
+                        RefreshTexDocument();
+                        formObject.setSelectedSheet("Tab1", 3);
                         break;
 
                     case "Btn_Modify_Taxdocument":
@@ -264,7 +268,7 @@ public class Accounts implements FormListener {
 //                        break;
                     case "Pick_ledgeraccount":
                         Query = "select AccountId,Description from LedgerACMaster order by AccountId asc";
-                        objPicklistListenerHandler.openPickList("q_ledgeraccountdesc", "Account ID,Description", "Ledger Account Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("q_ledgeraccountdesc", "Account ID,Description", "Ledger Account Master", 150, 500, Query);
                         setTDSdata();
                         BigDecimal linesum = getLedgerLineAmount();
                         if (linesum.compareTo(BigDecimal.valueOf(0)) > 0
@@ -305,7 +309,7 @@ public class Accounts implements FormListener {
                     case "Pick_ledgerbusinessunit":
                         System.out.println("inside if");
                         Query = "select SiteCode, SiteName from SiteMaster order by SiteCode asc";
-                        objPicklistListenerHandler.openPickList("q_ledgerbusinessunit", "Code, Name", "Business Unit Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("q_ledgerbusinessunit", "Code, Name", "Business Unit Master", 150, 500, Query);
 
                         break;
 
@@ -315,23 +319,23 @@ public class Accounts implements FormListener {
                             throw new ValidatorException(new FacesMessage("Kindly select the business unit value"));
                         } else {
                             Query = "select statecode,statename from statemaster where businessunitcode = '" + q_ledgerbusinessunit + "' order by statecode asc";
-                            objPicklistListenerHandler.openPickList("q_ledgerstate", "Code, Name", "Business Unit Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("q_ledgerstate", "Code, Name", "Business Unit Master", 150, 500, Query);
                         }
                         break;
 
                     case "Pick_ledgercostcenter":
                         Query = "select value, Description from CostCenter order by value asc";
-                        objPicklistListenerHandler.openPickList("q_ledgercostcenter", "Value,Description", "Cost Center Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("q_ledgercostcenter", "Value,Description", "Cost Center Master", 150, 500, Query);
                         break;
 
                     case "Pick_ledgerdepartment":
                         Query = "select Value,Description from Department order by Value asc";
-                        objPicklistListenerHandler.openPickList("q_ledgerdepartment", "Value,Description", "Department Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("q_ledgerdepartment", "Value,Description", "Department Master", 150, 500, Query);
                         break;
 
                     case "Pick_ledgergla":
                         Query = "select Value,Description from GLAMaster order by Value asc";
-                        objPicklistListenerHandler.openPickList("q_ledgergla", "Value,Description", "GLA Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("q_ledgergla", "Value,Description", "GLA Master", 150, 500, Query);
                         break;
 
                     case "Pick_ledgertdsgroup":
@@ -353,7 +357,7 @@ public class Accounts implements FormListener {
 
                         if (tdsapplicable) {
                             Query = "select Code,Description from TDSMaster order by Code asc";
-                            objPicklistListenerHandler.openPickList("q_ledgertdsgroup", "Code,Description", "TDS Group Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("q_ledgertdsgroup", "Code,Description", "TDS Group Master", 150, 500, Query);
                         } else {
                             throw new ValidatorException(new FacesMessage("TDS is not applicable for the selected account"));
                         }
@@ -361,27 +365,27 @@ public class Accounts implements FormListener {
 
                     case "Pick_withholdingtds":
                         Query = "select Code,Description from TDSMaster order by Code asc";
-                        objPicklistListenerHandler.openPickList("tdsgroup", "Code,Description", "TDS Group Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("tdsgroup", "Code,Description", "TDS Group Master", 150, 500, Query);
                         break;
 
                     case "Pick_ledgerwarehouse":
                         Query = "select warehousecode,warehousename from warehousemaster order by warehousecode asc";
-                        objPicklistListenerHandler.openPickList("q_ledgerwarehouse", "Code,Name", "Warehouse Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("q_ledgerwarehouse", "Code,Name", "Warehouse Master", 150, 500, Query);
                         break;
 
                     case "Pick_ledgerrso":
                         Query = "select rsocode, rsoname from rsomaster order by rsocode asc";
-                        objPicklistListenerHandler.openPickList("q_ledgerrso", "Code,Name", "RSO Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("q_ledgerrso", "Code,Name", "RSO Master", 150, 500, Query);
                         break;
 
                     case "Pick_hsnsac":
                         String hsnsaccodetype = formObject.getNGValue("qtd_hsnsactype");
                         if (hsnsaccodetype.equalsIgnoreCase("HSN")) {
                             Query = "select HSNCode,Description from HSNMaster order by HSNCode asc";
-                            objPicklistListenerHandler.openPickList("qtd_hsnsacdescription", "Code,Description", "HSN Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("qtd_hsnsacdescription", "Code,Description", "HSN Master", 150, 500, Query);
                         } else if (hsnsaccodetype.equalsIgnoreCase("SAC")) {
                             Query = "select SACCode,Description from SACMaster order by SACCode asc";
-                            objPicklistListenerHandler.openPickList("qtd_hsnsacdescription", "Code,Description", "SAC Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("qtd_hsnsacdescription", "Code,Description", "SAC Master", 150, 500, Query);
                         } else {
                             throw new ValidatorException(new FacesMessage("Kindly select the type value"));
                         }
@@ -390,19 +394,19 @@ public class Accounts implements FormListener {
                     case "Pick_companylocation":
                         Query = "select StateName,AddressId,Address,AddressName  from AddressMaster "
                                 + "where AddressType = 'Company'";
-                        objPicklistListenerHandler.openPickList("customerlocation", "State,Address Id,Address,Address Name", "Address Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("customerlocation", "State,Address Id,Address,Address Name", "Address Master", 150, 500, Query);
                         break;
 
                     case "Pick_vendorlocation":
                         Query = "select StateName, AddressId, GSTINNumber,Address,AddressName from AddressMaster "
                                 + "where AddressType = 'Vendor' and PartyCode = '" + formObject.getNGValue("accountcode") + "'";
-                        objPicklistListenerHandler.openPickList("vendorlocation", "State,Address Id,GSTIN Number,Address,Address Name", "Address Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("vendorlocation", "State,Address Id,GSTIN Number,Address,Address Name", "Address Master", 150, 500, Query);
                         break;
 
                     case "Pick_department":
                         System.out.println("inside Pick_department");
                         Query = "select value,description from department order by description asc";
-                        objPicklistListenerHandler.openPickList("departmentdsc", "Code,Description", "Department Master", 35, 35, Query);
+                        objPicklistListenerHandler.openPickList("departmentdsc", "Code,Description", "Department Master", 150, 500, Query);
                         break;
 
                     case "Pick_account":
@@ -410,10 +414,10 @@ public class Accounts implements FormListener {
                         String accounttype = formObject.getNGValue("accounttype");
                         if (accounttype.equalsIgnoreCase("Vendor")) {
                             Query = "select VendorCode,VendorName from VendorMaster order by VendorCode asc";
-                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Vendor Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Vendor Master", 150, 500, Query);
                         } else if (accounttype.equalsIgnoreCase("Customer")) {
                             Query = "select Code,Description from CustomerMaster order by Code asc";
-                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Customer Master", 70, 70, Query);
+                            objPicklistListenerHandler.openPickList("account", "Code,Name", "Customer Master", 150, 500, Query);
                         } else {
                             throw new ValidatorException(new FacesMessage("Kindly select the account type value"));
                         }
@@ -423,13 +427,13 @@ public class Accounts implements FormListener {
                         System.out.println("Inside pick journal");
                         Query = "select code,Description from JournalNamemaster order by code asc";
                         System.out.println("Query :" + Query);
-                        objPicklistListenerHandler.openPickList("journalname", "Code,Description", "Journal Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("journalname", "Code,Description", "Journal Master", 150, 500, Query);
                         break;
 
                     case "Pick_paymentterm":
                         System.out.println("inside Pick_paymentterm");
                         Query = "select PaymentTermCode,PaymentTermDesc from PaymentTermMaster";
-                        objPicklistListenerHandler.openPickList("paymentterm", "Code,Description", "Payment Term Master", 70, 70, Query);
+                        objPicklistListenerHandler.openPickList("paymentterm", "Code,Description", "Payment Term Master", 150, 500, Query);
                         break;
 
                     case "Clear_ledgerdepartment":
@@ -477,6 +481,16 @@ public class Accounts implements FormListener {
                             formObject.setLocked("qtd_taxamountadjustment", false);
                         }
                         break;
+
+                    case "Pick_ProjectName":
+                        Query = "select ProjectCode,ProjectDesc from ProjectMaster";
+                        objPicklistListenerHandler.openPickList("q_projectname", "ProjectCode,ProjectDesc", "Project Master", 150, 500, Query);
+                        break;
+
+                    case "Clear_ProjectId":
+                        formObject.clear("q_projectname");
+                        break;
+
                 }
                 break;
 
@@ -488,14 +502,14 @@ public class Accounts implements FormListener {
                                 String vendorstate = formObject.getNGValue("vendorstate");
                                 String customerstate = formObject.getNGValue("customerstate");
                                 if (!vendorstate.equalsIgnoreCase("") && !customerstate.equalsIgnoreCase("")) {
-                                    String taxcomponent = "", taxrate = "", taxamount = "", reversechargerate = "", reversechargeamount = "", TaxDocumentXML = "";
-                                    Query = "select ledgeraccount from cmplx_ledgerlinedetails where pinstanceid = '" + processInstanceId + "'";
+                                    String taxcomponent = "", taxrate = "", taxamount = "", TaxDocumentXML = "";
+                                    Query = "select ledgeraccount,linenumber from cmplx_ledgerlinedetails where pinstanceid = '" + processInstanceId + "'";
                                     System.out.println("Query :" + Query);
                                     result = formObject.getDataFromDataSource(Query);
                                     if (result.size() > 0) {
                                         for (int j = 0; j < result.size(); j++) {
                                             Query = "select count(*) from cmplx_taxdocument where pinstanceid = '" + processInstanceId + "' "
-                                                    + "and itemnumber = '" + result.get(j).get(0) + "'";
+                                                    + "and itemnumber = '" + result.get(j).get(0) + "' and linenumber = '" + result.get(j).get(1) + "'";
                                             System.out.println("Query :" + Query);
                                             List<List<String>> resultcount = formObject.getDataFromDataSource(Query);
                                             if (resultcount.get(0).get(0).equals("0")) {
@@ -511,7 +525,7 @@ public class Accounts implements FormListener {
                                                         }
 
                                                         TaxDocumentXML = (new StringBuilder()).append(TaxDocumentXML).
-                                                                append("<ListItem><SubItem>").append(""). //line number
+                                                                append("<ListItem><SubItem>").append(result.get(j).get(1)). //line number
                                                                 append("</SubItem><SubItem>").append(result.get(j).get(0)). //item number
                                                                 append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
                                                                 append("</SubItem><SubItem>").append(""). //hsnsac type
@@ -522,17 +536,18 @@ public class Accounts implements FormListener {
                                                                 append("</SubItem><SubItem>").append(taxamount). //tax amount
                                                                 append("</SubItem><SubItem>").append(taxamount). //adjustment tax amount
                                                                 append("</SubItem><SubItem>").append(""). //non business usage %
-                                                                append("</SubItem><SubItem>").append(reversechargerate). //reverse charge %
-                                                                append("</SubItem><SubItem>").append(reversechargeamount). //reverse charge amount
-                                                                append("</SubItem><SubItem>").append(""). //GST Rate Type
+                                                                append("</SubItem><SubItem>").append("0.00"). //reverse charge %
+                                                                append("</SubItem><SubItem>").append("0.00"). //reverse charge amount
+                                                                append("</SubItem><SubItem>").append("None"). //GST Rate Type
                                                                 append("</SubItem><SubItem>").append("false"). //exempt
+                                                                append("</SubItem><SubItem>").append(""). //Assessable Amount
                                                                 append("</SubItem></ListItem>").toString();
                                                     }
 
                                                 } else {
                                                     taxcomponent = "IGST";
                                                     TaxDocumentXML = (new StringBuilder()).append(TaxDocumentXML).
-                                                            append("<ListItem><SubItem>").append(""). //line number
+                                                            append("<ListItem><SubItem>").append(result.get(j).get(1)). //line number
                                                             append("</SubItem><SubItem>").append(result.get(j).get(0)). //item number
                                                             append("</SubItem><SubItem>").append(formObject.getNGValue("vendorgstingdiuid")). //gstingdiuid
                                                             append("</SubItem><SubItem>").append(""). //hsnsac type
@@ -543,10 +558,11 @@ public class Accounts implements FormListener {
                                                             append("</SubItem><SubItem>").append(taxamount). //tax amount
                                                             append("</SubItem><SubItem>").append(taxamount). //adjustment tax amount
                                                             append("</SubItem><SubItem>").append(""). //non business usage %
-                                                            append("</SubItem><SubItem>").append(reversechargerate). //reverse charge %
-                                                            append("</SubItem><SubItem>").append(reversechargeamount). //reverse charge amount
-                                                            append("</SubItem><SubItem>").append(""). //GST Rate Type
+                                                            append("</SubItem><SubItem>").append("0.00"). //reverse charge %
+                                                            append("</SubItem><SubItem>").append("0.00"). //reverse charge amount
+                                                            append("</SubItem><SubItem>").append("None"). //GST Rate Type
                                                             append("</SubItem><SubItem>").append("false"). //exempt
+                                                            append("</SubItem><SubItem>").append(""). //Assessable Amount
                                                             append("</SubItem></ListItem>").toString();
                                                 }
                                             }
@@ -709,6 +725,10 @@ public class Accounts implements FormListener {
         if (activityName.equalsIgnoreCase("AccountsChecker")) {
             formObject.setNGValue("accountschecker", userName);
         }
+        if (activityName.equalsIgnoreCase("AccountsMaker")) {
+            System.out.println("inside AccountsMaker non po");
+            formObject.setNGValue("accountsmaker", userName);
+        }
         objGeneral = new General();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
         objGeneral.compareDate(formObject.getNGValue("invoicedate"), formObject.getNGValue("postingdate"));
@@ -747,7 +767,7 @@ public class Accounts implements FormListener {
                     throw new ValidatorException(new FacesMessage("Kindly resolve all the errors to proceed further"));
                 }
             }
-            
+
             objAccountsGeneral.getsetRABILLSummary(processInstanceId);
             formObject.setNGValue("previousactivity", activityName);
             objGeneral.maintainHistory(
@@ -941,5 +961,21 @@ public class Accounts implements FormListener {
 
             System.out.println("Values updated");
         }
+    }
+
+    void DeletingLedgerline() {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        formConfig = FormContext.getCurrentInstance().getFormConfig();
+        int rowcount = formObject.getLVWRowCount("q_ledgerlinedetails");
+        System.out.println("row count : " + rowcount);
+        for (int i = 0; i < rowcount; i++) {
+            formObject.setNGValue("q_ledgerlinedetails", i, 0, Integer.toString(i + 1));
+        }
+    }
+
+    void RefreshTexDocument() {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        formConfig = FormContext.getCurrentInstance().getFormConfig();
+        formObject.clear("q_taxdocument");
     }
 }

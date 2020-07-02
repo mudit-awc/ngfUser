@@ -47,7 +47,8 @@ public class SupplyPoInvoices implements IFormListenerFactory {
         } else if (sActivityName.equalsIgnoreCase("AccountsMaker")
                 || sActivityName.equalsIgnoreCase("AccountsChecker")
                 || sActivityName.equalsIgnoreCase("MultipleGRNInvoicing")
-                || sActivityName.equalsIgnoreCase("AXAccountsSyncException")) {
+                || sActivityName.equalsIgnoreCase("AXAccountsSyncException")
+                || sActivityName.equalsIgnoreCase("End")) {
             return new AccountUser();
         }
         return null;

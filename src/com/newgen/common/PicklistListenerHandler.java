@@ -112,6 +112,11 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
         }
+        if (controlName.equalsIgnoreCase("qoc_chargescodedsc")) {
+            formObject.setNGValue("qoc_chargescode", m_objPickList.getSelectedValue().get(0));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
+            OFUtility.render(comp);
+        }
 
         if (controlName.equalsIgnoreCase("q_ledgertdsgroup")) {
             formObject.setNGValue("q_ledgertdsgroupcode", m_objPickList.getSelectedValue().get(0));
@@ -356,6 +361,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             query = "select purchaseorderdate, suppliercode,suppliername,businessunit,site,state,department,currency,"
                     + "deliveryterm,msmestatus,paymentterm,compositescheme,purchasestatus from "
                     + "ext_supplypoinvoices where purchaseorderno = '" + m_objPickList.getSelectedValue().get(0) + "' "
+                    + "and site is not null and department is not null and state is not null "
                     + "order by itemindex desc";
             System.out.println("query :" + query);
             result = formObject.getDataFromDataSource(query);
@@ -414,6 +420,12 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("qpo_structurecode", m_objPickList.getSelectedValue().get(0));
 //            formObject.setNGValue("qpo_structurename", m_objPickList.getSelectedValue().get(1));
         }
+         if (controlName.equalsIgnoreCase("q_projectname")) {
+            formObject.setNGValue("q_projectid", m_objPickList.getSelectedValue().get(0));
+            comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
+            OFUtility.render(comp);
+        }
+        
         if (controlName.equalsIgnoreCase("ij_configuration")) {
             formObject.setNGValue("ij_configuration", m_objPickList.getSelectedValue().get(1));
         }
@@ -427,7 +439,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             formObject.setNGValue("qrawht_tdsgroupcode", m_objPickList.getSelectedValue().get(0));
             comp.setValue(m_objPickList.getSelectedValue().get(0) + "_" + m_objPickList.getSelectedValue().get(1));
             OFUtility.render(comp);
-            formObject.setNGValue("qrawht_adjustedoriginamount", formObject.getNGValue("invoiceamount"));
+            formObject.setNGValue("qrawht_adjustedoriginamount", formObject.getNGValue("baseamount"));
             String q_adjustedoriginamount = formObject.getNGValue("qrawht_adjustedoriginamount");
             if (!"".equalsIgnoreCase(q_adjustedoriginamount)) {
                 query = "select TaxPercwithPAN from TDSMaster where code = '" + m_objPickList.getSelectedValue().get(0) + "'";
@@ -506,6 +518,7 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
         }
 
         if (controlName.equalsIgnoreCase("qoftd_hsnsacdescription")) {
+            String Query = "";
             formObject.setNGValue("qoftd_hsnsaccode", m_objPickList.getSelectedValue().get(0));
             String HSNSACRate = objGeneral.getHSNSACRate(
                     formObject.getNGValue("qoftd_hsnsactype"),
@@ -514,12 +527,10 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
             );
             formObject.setNGValue("qoftd_taxrate", HSNSACRate);
 
-            String Query = "select amount from cmplx_ledgerlinedetails where "
-                    + "pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "'";
+            String amount = formObject.getNGValue("TotalFreight");
+            System.out.println("Amount: " + amount);
             String taxamount = objCalculations.calculatePercentAmount(
-                    formObject.getDataFromDataSource(Query).get(0).get(0),
-                    HSNSACRate
-            );
+                    amount, HSNSACRate);
             formObject.setNGValue("qoftd_taxamount", taxamount);
             formObject.setNGValue("qoftd_taxamountadjustment", taxamount);
 
@@ -727,14 +738,23 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                 query = "select VendorCode,VendorName from VendorMaster order by VendorCode asc";
             }
         }
-        
-          if (controlName.equalsIgnoreCase("fd_warehousedsc")) {
+
+        if (controlName.equalsIgnoreCase("fd_warehousedsc")) {
             if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
                 query = "select WarehouseCode,WarehouseName from WarehouseMaster where "
                         + "upper(WarehouseCode) like '%" + filter_value.trim().toUpperCase() + "%' "
                         + "or upper(WarehouseName) like '%" + filter_value.trim().toUpperCase() + "%'";
             } else {
                 query = "select WarehouseCode,WarehouseName from WarehouseMaster order by WarehouseCode asc";
+            }
+        }
+        if (controlName.equalsIgnoreCase("qoc_chargescodedsc")) {
+            if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
+                query = "select Code,name from ChargesMaster where "
+                        + "upper(Code) like '%" + filter_value.trim().toUpperCase() + "%' "
+                        + "or upper(name) like '%" + filter_value.trim().toUpperCase() + "%'";
+            } else {
+                query = "select Code,name from ChargesMaster order by Code asc";
             }
         }
 
@@ -1026,15 +1046,29 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                 query = "select ProjectCode,ProjectDesc from ProjectMaster";
                 System.out.println("query of tds else");
             }
-        } else if (controlName.equalsIgnoreCase("abs_configuration")) {
+        } 
+        else if (controlName.equalsIgnoreCase("q_projectname")) {
+            System.out.println("search wale code m aagya q_projectname");
+            if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
+                query = "select ProjectCode,ProjectDesc from ProjectMaster "
+                        + "where upper(ProjectCode) like '%" + filter_value.trim().toUpperCase() + "%' "
+                        + "or upper(ProjectDesc) like '%" + filter_value.trim().toUpperCase() + "%'";
+                System.out.println("query of tds group if---  " + query);
+            } else {
+                query = "select ProjectCode,ProjectDesc from ProjectMaster";
+                System.out.println("query of tds else");
+            }
+        } 
+        else if (controlName.equalsIgnoreCase("ij_configuration")) {
             System.out.println("search abs_configuration wale code m aagya");
             if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
-                query = "select ItemCode,CofigurationCode from ItemConfigurationMaster "
-                        + "where upper(ItemCode) like '%" + filter_value.trim().toUpperCase() + "%' "
-                        + "or upper(CofigurationCode) like '%" + filter_value.trim().toUpperCase() + "%'";
+                query = "select ItemCode,CofigurationCode from ItemConfigurationMaster where "
+                        + "ItemCode ='" + formObject.getNGValue("ij_itemno") + "' "
+                        + "and upper(CofigurationCode) like '%" + filter_value.trim().toUpperCase() + "%'";
                 System.out.println("query of abs_configuration group if---  " + query);
             } else {
-                query = "select ItemCode,CofigurationCode from ItemConfigurationMaster";
+                query = "select ItemCode,CofigurationCode from ItemConfigurationMaster where "
+                        + "ItemCode ='" + formObject.getNGValue("ij_itemno") + "'";
                 System.out.println("query of abs_configuration else");
             }
         } else if (controlName.equalsIgnoreCase("abs_site")) {
@@ -1092,6 +1126,21 @@ public class PicklistListenerHandler extends EventListenerImplementor implements
                         + "or upper(purchaseorderno) like '%" + filter_value.trim().toUpperCase() + "%')";
             } else {
                 query = "select linenumber,itemid,purchaseorderno from cmplx_invoicedetails where pinstanceid ='" + formConfig.getConfigElement("ProcessInstanceId") + "'";
+            }
+        } else if (controlName.equalsIgnoreCase("purchaseorderno")) {
+            System.out.println("inside button search of purchaseorderno");
+            if (!(filter_value.equalsIgnoreCase("") || filter_value.equalsIgnoreCase("*"))) {
+                query = "select distinct ext.purchaseorderno from ext_supplypoinvoices ext, WFINSTRUMENTTABLE wf "
+                        + "where wf.ProcessInstanceID = ext.processid "
+                        + "and wf.ActivityName='HoldMultipleGRN' "
+                        + "and ext.purchaseorderno is not null "
+                        + "and (upper(ext.purchaseorderno)) like '%" + filter_value.trim().toUpperCase() + "%' ";
+            } else {
+                query = "select distinct ext.purchaseorderno from ext_supplypoinvoices ext, WFINSTRUMENTTABLE wf "
+                        + "where wf.ProcessInstanceID = ext.processid "
+                        + "and wf.ActivityName='HoldMultipleGRN' "
+                        //                                + "and ext.multiplegrn='False' "
+                        + "and ext.purchaseorderno is not null";
             }
         }
 

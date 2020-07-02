@@ -14,14 +14,15 @@ import com.newgen.common.General;
 import com.newgen.common.PicklistListenerHandler;
 import com.newgen.common.ReadProperty;
 import com.newgen.common.AccountsGeneral;
+import com.newgen.common.Calculations;
 import com.newgen.omniforms.FormConfig;
 import com.newgen.omniforms.FormReference;
 import com.newgen.omniforms.component.IRepeater;
-import com.newgen.omniforms.component.ListView;
 import com.newgen.omniforms.component.PickList;
 import com.newgen.omniforms.context.FormContext;
 import com.newgen.omniforms.event.ComponentEvent;
 import com.newgen.omniforms.event.FormEvent;
+import com.newgen.omniforms.excp.CustomExceptionHandler;
 import com.newgen.omniforms.listener.FormListener;
 import java.util.Date;
 import javax.faces.application.FacesMessage;
@@ -34,6 +35,7 @@ public class StoreUser implements FormListener {
     General objGeneral = null;
     ReadProperty objReadProperty = null;
     CallGateentryService objGetSetGateEntryData = null;
+    Calculations objCalculations = null;
     PostGRN objPostGRN = null;
     String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
             processInstanceId = null, workItemId = null, userName = null, processDefId = null, returnvalue = null, Query;
@@ -62,14 +64,43 @@ public class StoreUser implements FormListener {
         objAccountsGeneral = new AccountsGeneral();
         objPicklistListenerHandler = new PicklistListenerHandler();
         objMultipleGrnGeneral = new MultipleGrnGeneral();
+        objCalculations = new Calculations();
 
         formObject.setNGValue("processid", processInstanceId);
         IRepeater RepeaterControlFrame5 = formObject.getRepeaterControl("Frame5");
-        String GateEntryLineLV = "q_gateentrylines";
-        String SerialBatchRegistrationLV = "q_serialbatchregistration";
         switch (pEvent.getType().name()) {
             case "VALUE_CHANGED":
                 switch (pEvent.getSource().getName()) {
+                    case "currency":
+                        objCalculations.exronCurrencyChangePoProcess("currency", "invoiceamount", "newbaseamount", "exchangerate");
+                        break;
+
+                    case "storestatus":
+                        String storestatus = formObject.getNGValue("storestatus");
+                        if (storestatus.equalsIgnoreCase("Exception")) {
+                            //System.out.println("inside if of value change of store status");
+                            formObject.setVisible("storeexception", true);
+                            Query = "select ExceptionName from ExceptionMaster";
+                            System.out.println("query is :" + Query);
+                            result = formObject.getDataFromDataSource(Query);
+                            for (int i = 0; i < result.size(); i++) {
+                                formObject.addComboItem("storeexception", result.get(i).get(0), result.get(i).get(0));
+                            }
+                        } else {
+                            formObject.clear("storeexception");
+                            formObject.setVisible("storeexception", false);
+                        }
+                        break;
+                    case "invoiceamount":
+                    case "exchangerate":
+                        objCalculations.exronBaseamountandExchangerateChange("currency", "invoiceamount", "newbaseamount", "exchangerate");
+                        formObject.setNGValue("summ_invoiceamount", formObject.getNGValue("invoiceamount"));
+                        break;
+
+                    case "newbaseamount":
+                        formObject.setNGValue("summ_invoiceamountreporting", formObject.getNGValue("newbaseamount"));
+                        break;
+
                     case "q_sb_linenumber":
                         String linenumber = formObject.getNGValue("q_sb_linenumber");
                         if ("".equalsIgnoreCase(linenumber)) {
@@ -104,7 +135,9 @@ public class StoreUser implements FormListener {
 
                     case "grnstartdate":
                     case "grnenddate":
-                        objMultipleGrnGeneral.grnStartEndDateChange();
+                        if (formObject.isFormLoadChange() == false) {
+                            objMultipleGrnGeneral.grnStartEndDateChange();
+                        }
                         break;
                 }
                 break;
@@ -133,14 +166,14 @@ public class StoreUser implements FormListener {
 
                     case "Btn_AddLine":
                         System.out.println("inside java add line Btn_AddLine");
-                         if ("".equalsIgnoreCase(formObject.getNGValue("q_sb_registrationno"))) {
+                        if ("".equalsIgnoreCase(formObject.getNGValue("q_sb_registrationno"))) {
                             throw new ValidatorException(new FacesMessage("Registration Number can't be Empty", ""));
                         }
-                         
+
                         if ("".equalsIgnoreCase(formObject.getNGValue("q_sb_quantity"))) {
                             throw new ValidatorException(new FacesMessage("Quantity can't be Empty", ""));
                         }
-                        
+
                         if ("Batch".equalsIgnoreCase(formObject.getNGValue("q_sb_registrationtype"))) {
                             if ("".equalsIgnoreCase(formObject.getNGValue("q_sb_mfgdate"))) {
                                 throw new ValidatorException(new FacesMessage("Manufacturing date can't be Empty", ""));
@@ -245,16 +278,42 @@ public class StoreUser implements FormListener {
                         System.out.println("inside btn resolve");
                         objAccountsGeneral.setResolveAXException();
                         break;
+
+                    case "Btn_Export_GateEntry":
+                        // openGateEntryBamReport("GateEntryDetails");
+                        objGeneral.openbamreport("GateEntryDetails");
+                        break;
+
+                    case "Btn_View":
+                        System.out.println("inside btn view");
+                        String pid = formObject.getNGValue("q_multiplegrninvoicing", formObject.getSelectedIndex("q_multiplegrninvoicing"), 0);
+                        System.out.println("selectedpid: " + pid);
+                        objMultipleGrnGeneral.viewwi(pid);
+                        break;
                 }
 
                 break;
             case "TAB_CLICKED":
                 switch (pEvent.getSource().getName()) {
-                    case "":
+                    case "Tab1":
+                        switch (formObject.getSelectedSheet("Tab1")) {
+                            case 7: { //Tax Document
+                                System.out.println("Inside case 7 Tax Document ");
+                                Query = "select po.linenumber,po.itemnumber,gstin_gdi_uid,COALESCE(hsn,''),COALESCE(sac,''),COALESCE(igstrate,'0'),"
+                                        + "COALESCE(igsttaxamount,'0'),COALESCE(cgstrate,'0'),COALESCE(cgsttaxamount,'0'),"
+                                        + "COALESCE(sgstrate,'0'),COALESCE(sgsttaxamount,'0'),COALESCE(nonbusinessusagepercent,'0'),"
+                                        + "exempt,inv.newassessableamount,po.nongst,COALESCE(po.taxratetype,''),"
+                                        + "COALESCE(po.vatrate,'0'),COALESCE(po.vattaxamount,'0'),po.purchaseorderno "
+                                        + "from cmplx_poline po, cmplx_invoiceline inv where "
+                                        + "po.pinstanceid = '" + processInstanceId + "' and po.pinstanceid = inv.pinstanceid "
+                                        + "and po.linenumber = inv.linenumber and po.itemnumber = inv.itemid order by linenumber,itemnumber";
+                                objAccountsGeneral.setTaxDocument(Query, "q_taxdocument", processInstanceId);
+
+                            }
+                            break;
+                        }
                         break;
                 }
-
-                break;
         }
     }
 
@@ -333,25 +392,32 @@ public class StoreUser implements FormListener {
                     && activityName.equalsIgnoreCase("StoreMaker")) {
                 formObject.addComboItem("storestatus", "Submit For GRN", "Submit For GRN");
                 formObject.addComboItem("storestatus", "Exception", "Exception");
-//                formObject.addComboItem("storestatus", "Discard", "Discard");
+                formObject.addComboItem("storestatus", "Reject", "Reject"); // farman
             } else if (previousactivity.equalsIgnoreCase("StoreMaker")
                     && previousstatus.equalsIgnoreCase("Submit For GRN")
                     && activityName.equalsIgnoreCase("StoreChecker")) {
                 formObject.addComboItem("storestatus", "Create GRN", "Create GRN");
                 formObject.addComboItem("storestatus", "Exception", "Exception");
-//                formObject.addComboItem("storestatus", "Discard", "Discard");
-            } else if (previousactivity.equalsIgnoreCase("AccountsMaker")
+                formObject.addComboItem("storestatus", "Reject", "Reject"); // farman
+            } /////// farman
+            else if (previousactivity.equalsIgnoreCase("StoreChecker")
+                    && previousstatus.equalsIgnoreCase("Reject")
+                    && activityName.equalsIgnoreCase("StoreMaker")) {
+                formObject.addComboItem("storestatus", "Submit For GRN", "Submit For GRN");
+                formObject.addComboItem("storestatus", "Exception", "Exception");
+                formObject.addComboItem("storestatus", "Reject", "Reject"); // farman
+            } //////////
+            else if (previousactivity.equalsIgnoreCase("AccountsMaker")
                     && previousstatus.equalsIgnoreCase("GRN Cancellation Required")
                     && activityName.equalsIgnoreCase("StoreMaker")) {
                 formObject.addComboItem("storestatus", "Submit For Reversal GRN", "Submit For Reversal GRN");
+//                formObject.addComboItem("storestatus", "Reject", "Reject");
                 formObject.addComboItem("storestatus", "Exception", "Exception");
-//                formObject.addComboItem("storestatus", "Discard", "Discard");
             } else if (previousactivity.equalsIgnoreCase("StoreMaker")
                     && previousstatus.equalsIgnoreCase("Submit For Reversal GRN")
                     && activityName.equalsIgnoreCase("StoreChecker")) {
                 formObject.addComboItem("storestatus", "Create Reversal GRN", "Create Reversal GRN");
                 formObject.addComboItem("storestatus", "Exception", "Exception");
-//                formObject.addComboItem("storestatus", "Discard", "Discard");
             } else if (previousactivity.equalsIgnoreCase("PurchaseUser")
                     && previousstatus.equalsIgnoreCase("Purchase Return")
                     || (previousactivity.equalsIgnoreCase("StoreChecker")
@@ -378,8 +444,27 @@ public class StoreUser implements FormListener {
                 formObject.addComboItem("storestatus", "Send For Quality Inspection", "Send For Quality Inspection");
             } else if (activityName.equalsIgnoreCase("HoldMultipleGRN")) {
                 formObject.addComboItem("storestatus", "Create Reversal GRN", "Create Reversal GRN");
+            } // vaibhav code for exception cleared status in store checker 03/06/2020
+            else if (previousactivity.equalsIgnoreCase("PurchaseUser")
+                    && previousstatus.equalsIgnoreCase("Exception Cleared")
+                    && activityName.equalsIgnoreCase("StoreChecker")) {
+                formObject.addComboItem("storestatus", "Create GRN", "Create GRN");
+                formObject.addComboItem("storestatus", "Exception", "Exception");
+                formObject.addComboItem("storestatus", "Reject", "Reject");
+            } else if (previousactivity.equalsIgnoreCase("PurchaseUser")
+                    && previousstatus.equalsIgnoreCase("Exception Cleared")
+                    && activityName.equalsIgnoreCase("StoreMaker")) {
+                formObject.addComboItem("storestatus", "Submit For GRN", "Submit For GRN");
+                formObject.addComboItem("storestatus", "Exception", "Exception");
+                formObject.addComboItem("storestatus", "Reject", "Reject");
             }
 
+            String Currency = formObject.getNGValue("currency");
+            if (Currency.equalsIgnoreCase("INR")) {
+                formObject.setEnabled("exchangerate", false);
+            }
+
+            // end of code by vaibhav 03/06/2020
             Query = "select COUNT(*) from cmplx_poline where itemtrackingdimension in ('SN','BN') and  pinstanceid = '" + processInstanceId + "'";
             result = formObject.getDataFromDataSource(Query);
             int countItemtrackingDimension = Integer.parseInt(result.get(0).get(0));
@@ -418,12 +503,13 @@ public class StoreUser implements FormListener {
             formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
         }
         formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
+
     }
 
     @Override
     public void saveFormCompleted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
-//        System.out.print("-------------------save form completed---------");
+
     }
 
     @Override
@@ -447,6 +533,14 @@ public class StoreUser implements FormListener {
         System.out.println("******Inside Submit form Started****");
         String storeexception = "";
         storestatus = formObject.getNGValue("storestatus");
+        //// FARMAN
+        if (activityName.equalsIgnoreCase("StoreMaker")) {
+            formObject.setNGValue("storemaker", userName);
+        }
+        if (activityName.equalsIgnoreCase("StoreChecker")) {
+            formObject.setNGValue("storechecker", userName);
+        }
+        ///
         if (storestatus.equalsIgnoreCase("Exception")) {
             storeexception = ": " + formObject.getNGValue("storeexception");
         } else if (storestatus.equalsIgnoreCase("Submit For GRN")
@@ -501,6 +595,8 @@ public class StoreUser implements FormListener {
         );
         formObject.setNGValue("previousactivity", activityName);
         formObject.setNGValue("previousstatus", storestatus);
+        formObject.setNGValue("TransporterCode1", formObject.getNGValue("transportercode"));
+        formObject.setNGValue("TransporterName1", formObject.getNGValue("transportername"));
     }
 
     @Override
@@ -518,5 +614,21 @@ public class StoreUser implements FormListener {
     public String decrypt(String string
     ) {
         throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    void openGateEntryBamReport(String Report_name) {
+        formConfig = FormContext.getCurrentInstance().getFormConfig();
+        HashMap<String, String> hm = new HashMap<>();
+        String UserIndex = formConfig.getConfigElement("UserIndex");
+        String ip = formConfig.getConfigElement("ServletPath");
+        ip = ip.split("webdesktop")[0];
+        String ip1 = ip.replaceAll("//", "/");
+        Query = "select REPORTID from CRREPORTTABLE where REPORTNAME = '" + Report_name + "'";
+        result = formObject.getDataFromDataSource(Query);
+        String Link = "" + ip + "bam/login/login.jsf?CalledFrom=EXT&UserId=" + userName + "&UserIndex=" + UserIndex + "&SessionId=" + sessionId + "&CabinetName="
+                + "" + engineName + "&processInstanceId=" + processInstanceId + "&LaunchClient=RI&ReportIndex=" + result.get(0).get(0) + "&AjaxRequest=Y&OAPDomHost=" + ip1.split("/")[1] + "&ProcessInstanceId="
+                + processInstanceId + "";
+        System.out.println("Moving to client js ");
+        throw new ValidatorException(new CustomExceptionHandler("Btn_Export_GateEntry", Link, "", hm));
     }
 }

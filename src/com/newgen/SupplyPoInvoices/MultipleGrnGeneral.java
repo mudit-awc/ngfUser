@@ -11,8 +11,10 @@ import com.newgen.omniforms.FormConfig;
 import com.newgen.omniforms.FormReference;
 import com.newgen.omniforms.component.ListView;
 import com.newgen.omniforms.context.FormContext;
+import com.newgen.omniforms.excp.CustomExceptionHandler;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import javax.faces.application.FacesMessage;
 import javax.faces.validator.ValidatorException;
@@ -25,9 +27,11 @@ public class MultipleGrnGeneral implements Serializable {
 
     FormReference formObject = null;
     FormConfig formConfig = null;
-    String Query;
+    String Query, link = "", engineName = "", serverUrl = "", processInstanceId = "", workItemId = "",
+            userName = "", UserIndex = "", ip = "";
     List<List<String>> result;
     General objGeneral = null;
+    HashMap<String, String> hm = null;
 
     public void grnStartEndDateChange() {
         formObject = FormContext.getCurrentInstance().getFormReference();
@@ -36,16 +40,16 @@ public class MultipleGrnGeneral implements Serializable {
         boolean ShowMessage = false;
         String AlertMessage = "";
         //Add Delink WI Call Here
-        int rowcount = formObject.getLVWRowCount("q_multiplegrninvoicing");
-        for (int i = 0; i < rowcount; i++) {
-            objGeneral.linkWorkitem(
-                    formConfig.getConfigElement("EngineName"),
-                    formConfig.getConfigElement("DMSSessionId"),
-                    formConfig.getConfigElement("ProcessInstanceId"),
-                    formObject.getNGValue("q_multiplegrninvoicing", i, 0),
-                    "D"
-            );
-        }
+ //       int rowcount = formObject.getLVWRowCount("q_multiplegrninvoicing");
+//        for (int i = 0; i < rowcount; i++) {
+//            objGeneral.linkWorkitem(
+//                    formConfig.getConfigElement("EngineName"),
+//                    formConfig.getConfigElement("DMSSessionId"),
+//                    formConfig.getConfigElement("ProcessInstanceId"),
+//                    formObject.getNGValue("q_multiplegrninvoicing", i, 0),
+//                    "D"
+//            );
+//        }
         //Delete Query Here
         Query = "Delete from cmplx_multiplegrninvoicing where pinstanceid = '" + formConfig.getConfigElement("ProcessInstanceId") + "'";
         formObject.saveDataIntoDataSource(Query);
@@ -123,8 +127,6 @@ public class MultipleGrnGeneral implements Serializable {
         formObject = FormContext.getCurrentInstance().getFormReference();
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         objGeneral = new General();
-        String qmgrn_pid = formObject.getNGValue("qmgrn_pid");
-        formObject.ExecuteExternalCommand("NGDeleteRow", "q_multiplegrninvoicing");
         formObject.clear("q_polines");
         formObject.clear("q_gateentrylines");
         formObject.clear("q_invoiceline");
@@ -141,16 +143,28 @@ public class MultipleGrnGeneral implements Serializable {
         formObject.setNGValue("vendortaxinformation", "");
         formObject.setNGValue("vendoraddress", "");
 
-        Query = "update WFINSTRUMENTTABLE set VAR_STR16 = 'StoreMakerChecker' "
-                + "where ProcessInstanceID = '" + qmgrn_pid + "'";
-        formObject.saveDataIntoDataSource(Query);
-        objGeneral.linkWorkitem(
-                formConfig.getConfigElement("EngineName"),
-                formConfig.getConfigElement("DMSSessionId"),
-                formConfig.getConfigElement("ProcessInstanceId"),
-                qmgrn_pid,
-                "D"
-        );
+        //loop of selected rows - 
+        int[] selectedRowscount = formObject.getNGLVWSelectedRows("q_multiplegrninvoicing");
+        System.out.println("selectedRowscount : " + selectedRowscount.length);
+        for (int i = 0; i < selectedRowscount.length; i++) {
+            //   formObject.getSelectedIndex("");
+            String qmgrn_pid = formObject.getNGValue("q_multiplegrninvoicing", i, 0);
+            // String qmgrn_pid = formObject.getNGValue("qmgrn_pid");
+//        formObject.ExecuteExternalCommand("NGDeleteRow", "q_multiplegrninvoicing");
+            Query = "update WFINSTRUMENTTABLE set VAR_STR16 = 'StoreMakerChecker' "
+                    + "where ProcessInstanceID = '" + qmgrn_pid + "'";
+            formObject.saveDataIntoDataSource(Query);
+//            objGeneral.linkWorkitem(
+//                    formConfig.getConfigElement("EngineName"),
+//                    formConfig.getConfigElement("DMSSessionId"),
+//                    formConfig.getConfigElement("ProcessInstanceId"),
+//                    qmgrn_pid,
+//                    "D"
+//            );
+        }
+        //loop end
+
+        formObject.removeSelectedRows("q_multiplegrninvoicing");
         formObject.RaiseEvent("WFSave");
     }
 
@@ -216,13 +230,13 @@ public class MultipleGrnGeneral implements Serializable {
         formObject.setNGValue("vendortaxinformation", "");
         formObject.setNGValue("vendoraddress", "");
 
-        objGeneral.linkWorkitem(
-                formConfig.getConfigElement("EngineName"),
-                formConfig.getConfigElement("DMSSessionId"),
-                formConfig.getConfigElement("ProcessInstanceId"),
-                grnpid,
-                "D"
-        );
+//        objGeneral.linkWorkitem(
+//                formConfig.getConfigElement("EngineName"),
+//                formConfig.getConfigElement("DMSSessionId"),
+//                formConfig.getConfigElement("ProcessInstanceId"),
+//                grnpid,
+//                "D"
+//        );
         formObject.RaiseEvent("WFSave");
 
     }
@@ -260,13 +274,13 @@ public class MultipleGrnGeneral implements Serializable {
 
                 System.out.println("XML :" + MultipleGrnXML);
                 formObject.NGAddListItem("q_multiplegrninvoicing", MultipleGrnXML);
-                objGeneral.linkWorkitem(
-                        formConfig.getConfigElement("EngineName"),
-                        formConfig.getConfigElement("DMSSessionId"),
-                        formConfig.getConfigElement("ProcessInstanceId"),
-                        result.get(0).get(0),
-                        "A"
-                );
+//                objGeneral.linkWorkitem(
+//                        formConfig.getConfigElement("EngineName"),
+//                        formConfig.getConfigElement("DMSSessionId"),
+//                        formConfig.getConfigElement("ProcessInstanceId"),
+//                        result.get(0).get(0),
+//                        "A"
+//                );
                 formObject.RaiseEvent("WFSave");
             }
         }
@@ -341,7 +355,7 @@ public class MultipleGrnGeneral implements Serializable {
                         formObject.setNGValue("q_gateentrylines", j, 4, grnqty.add(q_grnqty).toString());
                         formObject.setNGValue("q_gateentrylines", j, 5, wbfirstwt.add(q_wbfirstwt).toString());
                         formObject.setNGValue("q_gateentrylines", j, 6, wbsecondwt.add(q_wbsecondwt).toString());
-                        formObject.setNGValue("q_gateentrylines", j, 7, q_wbnetwt.add(q_wbnetwt).toString());
+                        formObject.setNGValue("q_gateentrylines", j, 7, wbnetwt.add(q_wbnetwt).toString());
 
                         break;
                     }
@@ -391,5 +405,29 @@ public class MultipleGrnGeneral implements Serializable {
             formObject.saveDataIntoDataSource(Query);
         }
         return LockMessage;
+    }
+
+    public void viewwi(String ProcessinstanceID) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        formConfig = FormContext.getCurrentInstance().getFormConfig();
+        System.out.println("form congif xml " + formConfig.getConfigXML());
+        engineName = formConfig.getConfigElement("EngineName");
+        serverUrl = formConfig.getConfigElement("ServletPath");
+        workItemId = formConfig.getConfigElement("WorkitemId");
+        userName = formConfig.getConfigElement("UserName");
+        UserIndex = formConfig.getConfigElement("UserIndex");
+        hm = new HashMap<>();
+        System.out.println("serverUrl 1== " + serverUrl);
+        serverUrl = serverUrl.split("webdesktop")[0];
+        System.out.println("serverUrl == " + serverUrl);
+        ip = serverUrl.replaceAll("//", "/");
+
+        link = "" + serverUrl + "webdesktop/login/loginapp.jsf?WDDomHost=" + ip.split("/")[1] + ""
+                + "&CalledFrom=OPENWI&CabinetName=" + engineName + "&UserName=" + userName + "&UserIndex=" + UserIndex + ""
+                + "&pid=" + ProcessinstanceID + "&wid=" + workItemId + "&OAPDomHost=" + ip.split("/")[1] + "";
+
+        System.out.println("Link: " + link);
+
+        throw new ValidatorException(new CustomExceptionHandler("viewwi", link, "", hm));
     }
 }

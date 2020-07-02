@@ -11,9 +11,11 @@ import com.newgen.omniforms.FormConfig;
 import com.newgen.omniforms.FormReference;
 import com.newgen.omniforms.component.Panel;
 import com.newgen.omniforms.context.FormContext;
+import com.newgen.omniforms.excp.CustomExceptionHandler;
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.faces.application.FacesMessage;
@@ -25,20 +27,28 @@ public class General implements Serializable {
     FormReference formObject = null;
     FormConfig formConfig = null;
     General objGeneral = null;
-    String Query = null, assign = null;
+    String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
+            processInstanceId = null, workItemId = null, userName = null, processDefId = null;
+    String Query = null, assign = null, ip = null, ip1 = null, UserIndex = null;
     Calendar c = Calendar.getInstance();
     Date currentDate = new Date();
     DateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
     List<List<String>> resultarray, userarray, historyarray, result;
     public static NGEjbClient ngEjbClient = null;
     XMLParser xmlParser = new XMLParser();
+    HashMap<String, String> hm;
 
-    public static String executeWithCallBroker(String inputXml) {
+//    public static String executeWithCallBroker(String inputXml) {
+    public String executeWithCallBroker(String inputXml) {
+        formConfig = FormContext.getCurrentInstance().getFormConfig();
+        String ServerIP = formConfig.getConfigElement("ServletPath");
+        ServerIP = ServerIP.replaceAll("[://]", "/");
+        ServerIP = ServerIP.split("/")[3];
         String outputXml = "";
         try {
             System.out.println("INPUT: " + inputXml);
             ngEjbClient = NGEjbClient.getSharedInstance();
-            outputXml = ngEjbClient.makeCall("192.168.200.29", "8080", "JBOSSEAP", inputXml);//makeCall(inputXml);
+            outputXml = ngEjbClient.makeCall(ServerIP, "8080", "JBOSSEAP", inputXml);//makeCall(inputXml);
             System.out.println("OUTPUT: " + outputXml);
         } catch (NGException ex) {
             Logger.getLogger(General.class.getName()).log(Level.SEVERE, null, ex);
@@ -186,13 +196,16 @@ public class General implements Serializable {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("Inside transaction history" + ListviewID);
         try {
-            Date date = Calendar.getInstance().getTime();
+            Date date = new Date();
             DateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
-            DateFormat formatter1 = new SimpleDateFormat("hh:mm aa");
             String currentdate = formatter.format(date);
-
+           // System.out.println("currentdate :"+currentdate);
+           // System.out.println("Vaibhav :"+java.time.LocalDateTime.now());
+            Query = "select concat(UserName,'_',PersonalName,' ',FamilyName) from pdbuser where UserName='" + username + "'";
+            result = formObject.getDataFromDataSource(Query);
+            System.out.println("result maintainHistory : " + result.get(0).get(0));
             String historylistview = "<ListItem>"
-                    + "<SubItem>" + username + "</SubItem>"
+                    + "<SubItem>" + result.get(0).get(0) + "</SubItem>"
                     + "<SubItem>" + currentdate + "</SubItem>"
                     + "<SubItem>" + activityName + "</SubItem>"
                     + "<SubItem>" + status + "</SubItem>"
@@ -384,7 +397,6 @@ public class General implements Serializable {
                 + "</WFLinkWorkitem_Input>";
         System.out.println("WFLinkWorkitem_Input :" + WFLinkWorkitem_Input);
         executeWithCallBroker(WFLinkWorkitem_Input);
-
     }
 
     public void forwardWI(String EngineName, String SessionId, String ProcessInstanceID, String processDefId, String activityId, String attributes) {
@@ -555,6 +567,42 @@ public class General implements Serializable {
         return DoADefinedFlag;
     }
 
+    public boolean checkOutwardFreightDoAUser(String ApproverLevel, String ApproverStage) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        String sQuery;
+        boolean DoADefinedFlag = false;
+        System.out.println("Inside FreightBillApproverMaster");
+        Query = "select count(*) from FreightBillApproverMaster "
+                + "where site = '" + formObject.getNGValue("site") + "' "
+                + "and state = '" + formObject.getNGValue("state") + "' "
+                + "and department = '" + formObject.getNGValue("department") + "' ";
+        sQuery = Query + "and ApproverLevel = '" + ApproverLevel + "' ";
+        System.out.println("Query: " + sQuery);
+        result = formObject.getDataFromDataSource(sQuery);
+        if (result.get(0).get(0).equalsIgnoreCase("0")) {
+            if (ApproverStage.equalsIgnoreCase("Approver")) {
+                ApproverLevel = "AccountsMaker";
+                sQuery = Query + "and ApproverLevel = '" + ApproverLevel + "' ";
+                System.out.println("Query: " + sQuery);
+                result = formObject.getDataFromDataSource(sQuery);
+                if (result.get(0).get(0).equalsIgnoreCase("0")) {
+                    throw new ValidatorException(new FacesMessage("DoA is not defined for selected values"));
+                } else {
+                    formObject.setNGValue("FilterDoA_ApproverLevel", ApproverLevel);
+                    formObject.setNGValue("levelflag", ApproverLevel);
+                    DoADefinedFlag = true;
+                }
+            } else {
+                throw new ValidatorException(new FacesMessage("DoA is not defined for selected values"));
+            }
+        } else {
+            formObject.setNGValue("FilterDoA_ApproverLevel", ApproverLevel);
+            formObject.setNGValue("levelflag", ApproverLevel);
+            DoADefinedFlag = true;
+        }
+        return DoADefinedFlag;
+    }
+
     public void compareDate(String InvoiceDate, String PostingDate) {
         System.out.println("inside compareDate");
         System.out.println("InvoiceDate = " + InvoiceDate);
@@ -632,4 +680,65 @@ public class General implements Serializable {
         System.out.println("return date :" + date);
         return date;
     }
+
+    public void openbamreport(String Report_name) {
+        formConfig = FormContext.getCurrentInstance().getFormConfig();
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        //    System.out.println(formConfig.getConfigXML());
+        try {
+            engineName = formConfig.getConfigElement("EngineName");
+            sessionId = formConfig.getConfigElement("DMSSessionId");
+            folderId = formConfig.getConfigElement("FolderId");
+            serverUrl = formConfig.getConfigElement("ServletPath");
+            activityName = formObject.getWFActivityName();
+            processInstanceId = formConfig.getConfigElement("ProcessInstanceId");
+            workItemId = formConfig.getConfigElement("WorkitemId");
+            userName = formConfig.getConfigElement("UserName");
+            processDefId = formConfig.getConfigElement("ProcessDefId");
+
+            hm = new HashMap<>();
+            UserIndex = formConfig.getConfigElement("UserIndex");
+            System.out.println("serverUrl 1== "+serverUrl);
+            serverUrl = serverUrl.split("webdesktop")[0];
+            System.out.println("serverUrl == "+serverUrl);
+            ip = serverUrl.replaceAll("//", "/");
+            Query = "select REPORTID from CRREPORTTABLE where REPORTNAME = '" + Report_name + "'";
+            result = formObject.getDataFromDataSource(Query);
+        } catch (Exception e) {
+            System.out.println("Exception in FieldValueBagSet::::" + e.getMessage());
+        }
+        String Link = "" + serverUrl + "bam/login/login.jsf?CalledFrom=EXT&UserId=" + userName + "&UserIndex=" + UserIndex + "&SessionId=" + sessionId + "&CabinetName="
+                + "" + engineName + "&processInstanceId=" + processInstanceId + "&LaunchClient=RI&ReportIndex=" + result.get(0).get(0) + "&AjaxRequest=Y&OAPDomHost=" + ip.split("/")[1] + "&ProcessInstanceId="
+                + processInstanceId + "";
+        System.out.println("link == "+Link);
+        System.out.println("Moving to client js QQQQ");
+        throw new ValidatorException(new CustomExceptionHandler(Report_name, Link, "", hm));
+    }
+
+    public void setInvoiceExtractedData(String ponumberid, String invoicenumberid, String invoiceamountid, String invoicedateid) {
+        formObject = FormContext.getCurrentInstance().getFormReference();
+        if (!ponumberid.equalsIgnoreCase("")) {
+            System.out.println("Po number ex:" + formObject.getNGValue("ponumberex"));
+            if (formObject.getNGValue(ponumberid).equals("")) {
+                formObject.setNGValue(ponumberid, formObject.getNGValue("ponumberex"));
+            }
+        }
+
+        System.out.println("Invoice Number ex :" + formObject.getNGValue("invoicenumberex"));
+        if (formObject.getNGValue(invoicenumberid).equals("")) {
+            formObject.setNGValue(invoicenumberid, formObject.getNGValue("invoicenumberex"));
+        }
+
+        System.out.println("InvAmountEx :" + formObject.getNGValue("invoiceamountex").replace(",", ""));
+        if (formObject.getNGValue(invoiceamountid).equals("")) {
+            formObject.setNGValue(invoiceamountid, formObject.getNGValue("invoiceamountex").replace(",", ""));
+        }
+
+        System.out.println("Invoice Date ex :" + formObject.getNGValue("invoicedateex"));
+        if (formObject.getNGValue(invoicedateid).equals("")) {
+            formObject.setNGValue(invoicedateid, formatExtractedInvoiceDt(formObject.getNGValue("invoicedateex")));
+        }
+
+    }
+
 }

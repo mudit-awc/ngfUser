@@ -11,6 +11,7 @@ import com.newgen.omniforms.component.PickList;
 import com.newgen.omniforms.context.FormContext;
 import com.newgen.omniforms.event.ComponentEvent;
 import com.newgen.omniforms.event.FormEvent;
+import com.newgen.omniforms.excp.CustomExceptionHandler;
 import com.newgen.omniforms.listener.FormListener;
 import java.util.HashMap;
 import java.util.List;
@@ -22,13 +23,14 @@ public class Initiator implements FormListener {
     FormReference formObject = null;
     FormConfig formConfig = null;
     String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
-            processInstanceId = null, workItemId = null, userName = null, processDefId = null, Query = null;
+            processInstanceId = null, workItemId = null, userName = null, processDefId = null, Query = null, UserIndex ="", ip = "";
     List<List<String>> result;
     PickList objPicklist = null;
     General objGeneral = null;
     Calculations objCalculations = null;
     PicklistListenerHandler objPicklistListenerHandler = null;
     CallGetFreightDetail objGetSetFreightDetail = null;
+    HashMap<String, String> hm = null;
     //   int levelflag = 0;
 
     @Override
@@ -58,6 +60,7 @@ public class Initiator implements FormListener {
                         break;
 
                     case "account":
+
                         System.out.println("Account Code value : " + formObject.getNGValue("accountcode"));
                         formObject.setNGValue("VendorCode", formObject.getNGValue("accountcode"));
                         formObject.setNGValue("VendorName", formObject.getNGValue("accountname"));
@@ -129,6 +132,9 @@ public class Initiator implements FormListener {
                                     tdsdatainitialize(result.get(0).get(1), formObject.getNGValue("TotalFreight"));
                                 }
                             }
+                            System.out.println("Delievery Term: " + formObject.getNGValue("DelieveryTerm"));
+                            formObject.setNGValue("Delievery_Term", formObject.getNGValue("DelieveryTerm"));
+                            formObject.setNGValue("baseamount", formObject.getNGValue("TotalFreight"));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -136,7 +142,7 @@ public class Initiator implements FormListener {
 
                     case "Pick_department":
                         Query = "select description from department order by description asc";
-                        objPicklistListenerHandler.openPickList("department", "Description", "Department Master", 35, 35, Query);
+                        objPicklistListenerHandler.openPickList("departmentdsc", "Code,Description", "Department Master", 35, 35, Query);
                         break;
 
                     case "Pick_account":
@@ -156,7 +162,7 @@ public class Initiator implements FormListener {
                                 Query);
                         break;
                 }
-                break;
+               
         }
     }
 
@@ -257,50 +263,13 @@ public class Initiator implements FormListener {
 
         System.out.println("**********-------SUBMIT FORM Started Outward Freight------------*************");
         AccountsGeneral gen = new AccountsGeneral();
-        gen.getsetOutwardFreightSummary(processInstanceId);
-        String sQuery = "", nextactivity = "", strLevelFlag = "";
-        int levelflag = Integer.parseInt(formObject.getNGValue("levelflag"));
-        Query = "select count(*) from FreightBillApproverMaster "
-                + "where site = '" + formObject.getNGValue("site") + "' "
-                + "and state = '" + formObject.getNGValue("state") + "' "
-                + "and department = '" + formObject.getNGValue("department") + "' ";
-        sQuery = Query + "and ApproverLevel = '" + levelflag + "' ";
-        System.out.println("Query: " + sQuery);
-        result = formObject.getDataFromDataSource(sQuery);
-        System.out.println("result is" + result);
-        if (result.get(0).get(0).equalsIgnoreCase("0")) {
-            sQuery = "";
-            sQuery = Query + "and ApproverLevel = 'Maker'";
-            System.out.println("Query: " + sQuery);
-            result = formObject.getDataFromDataSource(sQuery);
-            if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                sQuery = "";
-                sQuery = Query + "and ApproverLevel = 'Checker'";
-                System.out.println("Query: " + sQuery);
-                result = formObject.getDataFromDataSource(sQuery);
-                if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                    throw new ValidatorException(new FacesMessage("No Approver and Account Maker/Checker defined in the DoA."));
-                } else {
-                    strLevelFlag = "Checker";
-                    nextactivity = "Accounts";
-                }
-            } else {
-                strLevelFlag = "Maker";
-                nextactivity = "Accounts";
-            }
-        } else {
-            strLevelFlag = String.valueOf(levelflag);
-            nextactivity = "Approver";
-        }
-        formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
+        String levelflag = formObject.getNGValue("levelflag");
+        objGeneral.checkOutwardFreightDoAUser(levelflag, "");
         formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
-        //     formObject.setNGValue("FilterDoA_Head", formObject.getNGValue("proctype"));
         formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
         formObject.setNGValue("Filter_DoA_StateName", formObject.getNGValue("state"));
-        formObject.setNGValue("levelflag", strLevelFlag);
-        formObject.setNGValue("nextactivity", nextactivity);
         formObject.setNGValue("previousactivity", activityName);
-
+        gen.getsetOutwardFreightSummary(processInstanceId);
         objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("exempt"), "q_transactionhistory");
     }
 

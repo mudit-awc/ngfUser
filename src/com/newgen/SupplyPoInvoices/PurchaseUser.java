@@ -45,12 +45,6 @@ public class PurchaseUser implements FormListener {
             userName = formConfig.getConfigElement("UserName");
             processDefId = formConfig.getConfigElement("ProcessDefId");
 
-//            System.out.println("ProcessInstanceId===== " + processInstanceId);
-//            System.out.println("Activityname=====" + activityName);
-//            System.out.println("CabinetName====" + engineName);
-//            System.out.println("sessionId====" + sessionId);
-//            System.out.println("Username====" + userName);
-//            System.out.println("workItemId====" + workItemId);
         } catch (Exception e) {
             System.out.println("Exception in FieldValueBagSet::::" + e.getMessage());
         }
@@ -142,11 +136,14 @@ public class PurchaseUser implements FormListener {
         formObject.setNGValue("nextactivity", formObject.getNGValue("previousactivity"));
         formObject.setNGValue("previousactivity", activityName);
         formObject.setNGValue("previousstatus", purchaseStatus);
+        formObject.setNGValue("TransporterCode1", formObject.getNGValue("transportercode"));
+        formObject.setNGValue("TransporterName1", formObject.getNGValue("transportername"));
     }
 
     @Override
     public void submitFormCompleted(FormEvent fe) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
+        
     }
 
     @Override
@@ -159,18 +156,14 @@ public class PurchaseUser implements FormListener {
                 switch (pEvent.getSource().getName()) {
                     case "btn_fetchpogedetails":
                         String purchaseorderno = formObject.getNGValue("purchaseorderno");
-                        new CallGateentryService().GetSetGateEntry(
-                                purchaseorderno,
-                                formObject.getNGValue("invoiceno")
-                        );
-                        //  String AccessToken = new CallAccessTokenService().getAccessToken();
+
                         new CallPurchaseOrderService().GetSetPurchaseOrder(
                                 "",
                                 "Supply",
                                 purchaseorderno,
                                 "Supply"
                         );
-                        
+
                         formObject.clear("q_taxdocument");
                         formObject.clear("q_withholdingtax");
                         break;

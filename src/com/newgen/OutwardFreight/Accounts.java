@@ -14,6 +14,7 @@ import com.newgen.omniforms.event.FormEvent;
 import com.newgen.omniforms.listener.FormListener;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import javax.faces.application.FacesMessage;
@@ -25,6 +26,7 @@ public class Accounts implements FormListener {
     FormConfig formConfig = null;
     String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
             processInstanceId = null, workItemId = null, userName = null, processDefId = null, Query = null;
+    boolean taxdoc = false, withtax = false;
     List<List<String>> result;
     PickList objPicklist;
     General objGeneral = null;
@@ -67,6 +69,12 @@ public class Accounts implements FormListener {
                         } else {
                             formObject.setNGValue("qoftd_reversechargepercent", "0.00");
                             formObject.setNGValue("qoftd_reversechargeamount", "0.00");
+                        }
+                        break;
+
+                    case "qoftd_taxamount":
+                        if (formObject.getNGValue("qoftd_taxamount").equalsIgnoreCase("0") || formObject.getNGValue("qoftd_taxamount").equalsIgnoreCase("0.0") || formObject.getNGValue("qoftd_taxamount").equalsIgnoreCase("0.00")) {
+                            formObject.setEnabled("qoftd_taxamountadjustment", false);
                         }
                         break;
                 }
@@ -130,10 +138,27 @@ public class Accounts implements FormListener {
                     case "Btn_Resolve":
                         objAccountsGeneral.setResolveAXException();
                         break;
+
+                    case "Pick_companylocation":
+                        System.out.println("inside Pick_companylocation");
+                        Query = "select StateName,AddressId,Address,AddressName  from AddressMaster "
+                                + "where AddressType = 'Company'";
+                        objPicklistListenerHandler.openPickList("customerlocation", "State,Address Id,Address,Address Name", "Address Master", 100, 450, Query);
+                        break;
                 }
 
             case "TAB_CLICKED":
                 switch (pEvent.getSource().getName()) {
+                    case "Tab1":
+                        switch (formObject.getSelectedSheet("Tab1")) {
+                            case 3:  //taxdocument
+                                taxdoc = true;
+                                break;
+
+                            case 4: //withholdingtax
+                                withtax = true;
+                                break;
+                        }
                 }
         }
     }
@@ -178,6 +203,7 @@ public class Accounts implements FormListener {
         formObject.clear("filestatus");
         formObject.addComboItem("filestatus", "Approved", "Approved");
         formObject.addComboItem("filestatus", "Query Raised", "Query Raised");
+        formObject.addComboItem("filestatus", "Reject", "Reject");
         System.out.println("filestatus value" + formObject.getNGValue("filestatus"));
 
         formObject.setSheetVisible("Tab1", 3, true);
@@ -241,46 +267,37 @@ public class Accounts implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
         objGeneral = new General();
-        if(activityName.equalsIgnoreCase("AccountsChecker")){
-        formObject.setNGValue("accountschecker", userName);
-        } 
+        if (taxdoc == false) {
+            throw new ValidatorException(new FacesMessage("Kindly select Tax Document Tab"));
+        }
+        if (withtax == false) {
+            throw new ValidatorException(new FacesMessage("Kindly select withholding Tax Tab"));
+        }
         AccountsGeneral gen = new AccountsGeneral();
-         gen.getsetOutwardFreightSummary(processInstanceId);
-        if (activityName.equalsIgnoreCase("Accounts")) {
-
-            String sQuery = "", nextactivity = "", strLevelFlag = "";
-            String filestatus = formObject.getNGValue("filestatus");
-            String levelflag = formObject.getNGValue("levelflag");
+        String sQuery = "", nextactivity = "", strLevelFlag = "";
+        String filestatus = formObject.getNGValue("filestatus");
+        String levelflag = formObject.getNGValue("levelflag");
+        if (activityName.equalsIgnoreCase("AccountsMaker")) {
             if (filestatus.equalsIgnoreCase("Approved")) {
-                Query = "select count(*) from FreightBillApproverMaster "
+                objGeneral.checkOutwardFreightDoAUser("AccountsChecker", "");
+            } else if (filestatus.equalsIgnoreCase("Reject")) {
+                Query = "select top 1 ApproverLevel from FreightBillApproverMaster "
                         + "where site = '" + formObject.getNGValue("site") + "' "
                         + "and state = '" + formObject.getNGValue("state") + "' "
-                        + "and department = '" + formObject.getNGValue("department") + "' ";
-
-                if (levelflag.equalsIgnoreCase("Maker")) {
-                    sQuery = Query + "and ApproverLevel = 'Checker' ";
-                    System.out.println("Query :" + sQuery);
-                    result = formObject.getDataFromDataSource(sQuery);
-                    if (result.get(0).get(0).equalsIgnoreCase("0")) {
-                        throw new ValidatorException(new FacesMessage("No Account Checker defined in the DoA."));
-                    } else {
-                        strLevelFlag = "Checker";
-                        nextactivity = "Accounts";
-                    }
-                } else if (levelflag.equalsIgnoreCase("Checker")) {
-                    strLevelFlag = "SchedularAccountPosting";
-                    nextactivity = "SchedularAccountPosting";
-                }
-            } else if (filestatus.equalsIgnoreCase(
-                    "Query Raised")) {
-                nextactivity = "Initiator";
+                        + "and department = '" + formObject.getNGValue("department") + "'"
+                        + "and ApproverLevel not in ('AccountsMaker','AccountsChecker') order by ApproverLevel desc";
+                System.out.println("Query :" + Query);
+                result = formObject.getDataFromDataSource(Query);
+                formObject.setNGValue("FilterDoA_ApproverLevel", result.get(0).get(0));
+                formObject.setNGValue("levelflag", result.get(0).get(0));
             }
-
-            formObject.setNGValue("FilterDoA_ApproverLevel", strLevelFlag);
-            formObject.setNGValue("levelflag", strLevelFlag);
-            formObject.setNGValue("nextactivity", nextactivity);
-            formObject.setNGValue("previousactivity", activityName);
-            objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("exempt"), "q_transactionhistory");
+            formObject.setNGValue("accountsmaker", userName);
+        } else if (activityName.equalsIgnoreCase("AccountsChecker")) {
+            if (filestatus.equalsIgnoreCase("Reject")) {
+                formObject.setNGValue("FilterDoA_ApproverLevel", "AccountsMaker");
+                formObject.setNGValue("levelflag", "AccountsMaker");
+            }
+            formObject.setNGValue("accountschecker", userName);
         } else if (activityName.equalsIgnoreCase("AXSyncException")) {
             Query = "select count(*) from cmplx_axintegration_error where "
                     + "resolve = 'False' and pinstanceid = '" + processInstanceId + "'";
@@ -288,6 +305,10 @@ public class Accounts implements FormListener {
                 throw new ValidatorException(new FacesMessage("Kindly resolve all the errors to proceed further"));
             }
         }
+        formObject.setNGValue("previousactivity", activityName);
+        gen.getsetOutwardFreightSummary(processInstanceId);
+        objGeneral.maintainHistory(userName, activityName, formObject.getNGValue("filestatus"), "", formObject.getNGValue("exempt"), "q_transactionhistory");
+
     }
 
     @Override
@@ -317,20 +338,18 @@ public class Accounts implements FormListener {
                 Line_no = String.valueOf(rowIndex + 1);
             }
             System.out.println("Updating Listview for " + TaxComponent1 + "");
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 0, formObject.getNGValue("qoftd_gstingdiuid"));//line number
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 1, formObject.getNGValue("qoftd_hsnsactype")); //item number
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 2, formObject.getNGValue("qoftd_hsnsaccode")); //gstingdiuid
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 3, formObject.getNGValue("qtd_hsnsactype")); //hsnsac type
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 4, formObject.getNGValue("qtd_hsnsaccode")); //hsnsac code
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 5, formObject.getNGValue("qoftd_hsnsacdescription")); //hsnsac description
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 6, TaxComponent1); //tax component
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 7, formObject.getNGValue("qoftd_taxrate")); //rate
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 8, formObject.getNGValue("qoftd_taxamount")); //tax amount
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 9, formObject.getNGValue("qoftd_taxamountadjustment")); //adjustment tax amount
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 10, formObject.getNGValue("qoftd_nonbusinessusagepercent")); //non business usage %
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 11, formObject.getNGValue("qoftd_reversechargeamount")); //reverse charge amount
-            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 12, formObject.getNGValue("qoftd_reversechargepercent")); //reverse charge %
-
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 0, formObject.getNGValue("qoftd_gstingdiuid")); //gstingdiuid
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 1, formObject.getNGValue("qoftd_hsnsactype")); //hsnsac type
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 2, formObject.getNGValue("qoftd_hsnsaccode")); //hsnsac code
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 3, formObject.getNGValue("qoftd_hsnsacdescription")); //hsnsac description
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 4, TaxComponent1); //tax component
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 5, formObject.getNGValue("qoftd_taxrate")); //rate
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 6, formObject.getNGValue("qoftd_taxamount")); //tax amount
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 7, formObject.getNGValue("qoftd_taxamountadjustment")); //adjustment tax amount
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 8, formObject.getNGValue("qoftd_nonbusinessusagepercent")); //non business usage %
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 9, formObject.getNGValue("qoftd_reversechargeamount")); //reverse charge amount
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 10, formObject.getNGValue("qoftd_reversechargepercent")); //reverse charge %
+            formObject.setNGValue("q_tds_document", Integer.parseInt(Line_no), 11, formObject.getNGValue("qtd_gstratetype")); //gst rate type
             System.out.println("Values updated");
         }
     }

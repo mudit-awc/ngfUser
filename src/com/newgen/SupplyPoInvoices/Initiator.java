@@ -20,7 +20,7 @@ import java.util.Date;
 import javax.faces.application.FacesMessage;
 
 public class Initiator implements FormListener {
-    
+
     FormReference formObject = null;
     FormConfig formConfig = null;
     General objGeneral = null;
@@ -30,11 +30,11 @@ public class Initiator implements FormListener {
     String activityName = null, engineName = null, sessionId = null, folderId = null, serverUrl = null,
             processInstanceId = null, workItemId = null, userName = null, processDefId = null, returnvalue = null, Query;
     List<List<String>> result;
-    
+
     @Override
     public void continueExecution(String arg0, HashMap<String, String> arg1) {
     }
-    
+
     @Override
     public void eventDispatched(ComponentEvent pEvent) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
@@ -42,18 +42,23 @@ public class Initiator implements FormListener {
         objAccountsGeneral = new AccountsGeneral();
         objPicklistListenerHandler = new PicklistListenerHandler();
         objCalculations = new Calculations();
-        
+
         switch (pEvent.getType().name()) {
             case "VALUE_CHANGED":
                 switch (pEvent.getSource().getName()) {
                     case "invoicedate":
                         objGeneral.setFiscalYear(formObject.getNGValue("invoicedate"), "fiscalyear");
                         break;
-                    
+
                     case "currency":
                         objCalculations.exronCurrencyChange("currency", "invoiceamount", "newbaseamount", "exchangerate");
                         break;
-                    
+
+                    case "invoiceamount":
+                    case "exchangerate":
+                        objCalculations.exronBaseamountandExchangerateChange("currency", "invoiceamount", "newbaseamount", "exchangerate");
+                        break;
+
                     case "multiplegrn":
                         System.out.println("Inside multiple grn");
                         if (formObject.getNGValue("multiplegrn").equalsIgnoreCase("True")) {
@@ -68,7 +73,7 @@ public class Initiator implements FormListener {
                             formObject.setLocked("purchaseorderno", false);
                             formObject.setVisible("Frame11", false);
                             formObject.setVisible("Frame9", true);
-                            
+
                             formObject.setNGValue("purchaseorderdate", "");
                             formObject.setNGValue("suppliercode", "");
                             formObject.setNGValue("suppliername", "");
@@ -82,17 +87,12 @@ public class Initiator implements FormListener {
                             formObject.setNGValue("paymentterm", "");
                             formObject.setNGValue("compositescheme", "");
                             formObject.setNGValue("purchasestatus", "");
-                            
+
                         }
-                        break;
-                    
-                    case "invoiceamount":
-                    case "exchangerate":
-                        objCalculations.exronBaseamountandExchangerateChange("currency", "invoiceamount", "newbaseamount", "exchangerate");
                         break;
                 }
                 break;
-            
+
             case "MOUSE_CLICKED":
                 switch (pEvent.getSource().getName()) {
                     case "btn_fetchpogedetails":
@@ -109,12 +109,12 @@ public class Initiator implements FormListener {
                                 "Supply"
                         );
                         break;
-                    
+
                     case "Pick_MultipleGRNPo":
                         Query = "select distinct ext.purchaseorderno from ext_supplypoinvoices ext, WFINSTRUMENTTABLE wf "
                                 + "where wf.ProcessInstanceID = ext.processid "
                                 + "and wf.ActivityName='HoldMultipleGRN' "
-//                                + "and ext.multiplegrn='False' "
+                                //                                + "and ext.multiplegrn='False' "
                                 + "and ext.purchaseorderno is not null";
                         System.out.println("Query: " + Query);
                         objPicklistListenerHandler.openPickList(
@@ -130,7 +130,7 @@ public class Initiator implements FormListener {
                 break;
         }
     }
-    
+
     @Override
     public void formLoaded(FormEvent arg0) {
 //        System.out.println(" -------------------Intiation Workstep Loaded from formloaded.----------------");
@@ -157,60 +157,71 @@ public class Initiator implements FormListener {
             System.out.println("Exception in FieldValueBagSet::::" + e.getMessage());
         }
     }
-    
+
     @Override
     public void formPopulated(FormEvent arg0) {
         formObject = FormContext.getCurrentInstance().getFormReference();
-        
+        objGeneral = new General();
         formObject.setNGValue("initiatorstatus", "");
         formObject.setNGValue("initiatorremarks", "");
         formObject.setNGValue("multiplegrn", "False");
-        
+
         formObject.clear("proctype");
         Query = "select HeadName from supplypoheadmaster order by HeadName asc";
         System.out.println("Query is " + Query);
         result = formObject.getDataFromDataSource(Query);
         for (int i = 0; i < result.size(); i++) {
             formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
-        }        
+        }
+        formObject.setNGValue("exchangerate", "0");
+        objGeneral.setInvoiceExtractedData("purchaseorderno", "invoiceno", "invoiceamount", "invoicedate");
         formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
     }
-    
+
     @Override
     public void saveFormCompleted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
     }
-    
+
     @Override
     public void saveFormStarted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
     }
-    
+
     @Override
     public void submitFormCompleted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
+        
     }
-    
+
     @Override
     public void submitFormStarted(FormEvent arg0) throws ValidatorException {
         formObject = FormContext.getCurrentInstance().getFormReference();
-        
+        objGeneral = new General();
+        objGeneral.checkDuplicateInvoice(
+                formObject.getNGValue("suppliercode"),
+                formObject.getNGValue("invoiceno"),
+                formObject.getNGValue("fiscalyear"),
+                processInstanceId
+        );
         String initiatorexception = "";
         String initiatorStatus = formObject.getNGValue("initiatorstatus");
         if (initiatorStatus.equalsIgnoreCase("Initiate")) {
             if (formObject.getNGValue("multiplegrn").equalsIgnoreCase("False")) {
-                ListView ListViewq_gateentrylines = (ListView) formObject.getComponent("q_gateentrylines");
-                int RowCount_gateentrylines = ListViewq_gateentrylines.getRowCount();
+//                ListView ListViewq_gateentrylines = (ListView) formObject.getComponent("q_gateentrylines");
+                int RowCount_gateentrylines = formObject.getLVWRowCount("q_gateentrylines"); //ListViewq_gateentrylines.getRowCount();
                 if (RowCount_gateentrylines == 0) {
                     throw new ValidatorException(new FacesMessage("Kindly fetch the gate entry details", ""));
                 }
             }
-            objGeneral.checkSupplyPoDoAUser("StoreMaker");
+            if ((!initiatorStatus.equalsIgnoreCase("Exception")) && (!initiatorStatus.equalsIgnoreCase("Discard"))) {
+                objGeneral.checkSupplyPoDoAUser("StoreMaker");
+            }
         }
         if (initiatorStatus.equalsIgnoreCase("Exception")) {
             initiatorexception = ": " + formObject.getNGValue("initiatorexception");
         }
-        
+
         objAccountsGeneral.getsetSupplyPoSummary(processInstanceId);
         objGeneral.maintainHistory(
                 userName,
@@ -226,20 +237,27 @@ public class Initiator implements FormListener {
         formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
         formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
         formObject.setNGValue("previousactivity", activityName);
-        
+
+        formObject.setNGValue("POnumber", formObject.getNGValue("purchaseorderno"));
+        formObject.setNGValue("VendorCode", formObject.getNGValue("suppliercode"));
+        formObject.setNGValue("VendorName", formObject.getNGValue("suppliername"));
+        formObject.setNGValue("TransporterCode1", formObject.getNGValue("transportercode"));
+        formObject.setNGValue("TransporterName1", formObject.getNGValue("transportername"));
+        //formObject.setNGValue("ScanningId", formObject.getNGValue("parentprocessid"));
+//         throw new ValidatorException(new FacesMessage("Under maintanance", ""));
     }
-    
+
     @Override
     public void initialize() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-    
+
     @Override
     public String encrypt(String string
     ) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-    
+
     @Override
     public String decrypt(String string
     ) {

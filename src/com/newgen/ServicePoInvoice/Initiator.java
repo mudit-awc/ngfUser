@@ -69,6 +69,11 @@ public class Initiator implements FormListener {
                         objCalculations.exronCurrencyChange("currency", "invoiceamount", "newbaseamount", "exchangerateotherthaninr");
                         break;
 
+                    case "invoiceamount":
+                    case "exchangerateotherthaninr":
+                        objCalculations.exronBaseamountandExchangerateChange("currency", "invoiceamount", "newbaseamount", "exchangerateotherthaninr");
+                        break;
+
 //                    case "suppliercode":
 //                        Query = "select gta from VendorMaster where VendorCode = '" + formObject.getNGValue("suppliercode") + "'";
 //                        result = formObject.getDataFromDataSource("Query");
@@ -80,17 +85,22 @@ public class Initiator implements FormListener {
 //                            }
 //                        }
 //                        break;
-                    case "invoiceamount":
-                    case "exchangerateotherthaninr":
-                        objCalculations.exronBaseamountandExchangerateChange("currency", "invoiceamount", "newbaseamount", "exchangerateotherthaninr");
-                        break;
-
                     case "filestatus":
                         String filestatus = formObject.getNGValue("filestatus");
                         if (filestatus.equalsIgnoreCase("Exception")) {
                             formObject.setVisible("Label66", true);
                             formObject.setVisible("Combo3", true);
+                            Query = "select ExceptionName from ExceptionMaster";
+                            System.out.println("query is :" + Query);
+                            result = formObject.getDataFromDataSource(Query);
+                            for (int i = 0; i < result.size(); i++) {
+                                formObject.addComboItem("Combo3", result.get(i).get(0), result.get(i).get(0));
+                            }
 
+                        } else {
+                            formObject.clear("Combo3");
+                            formObject.setVisible("Label66", false);
+                            formObject.setVisible("Combo3", false);
                         }
                         break;
 
@@ -162,7 +172,7 @@ public class Initiator implements FormListener {
                             ArrayList<Integer> q_polinedetailsindexesarr = new ArrayList<Integer>();
 
                             for (int i = 0; i <= RCq_polinedetails; i++) {
-                                if (multiposelected.equalsIgnoreCase(formObject.getNGValue("q_polinedetails", i, 72))) {
+                                if (multiposelected.equalsIgnoreCase(formObject.getNGValue("q_polinedetails", i, 73))) {
                                     System.out.println(i + " Matched");
                                     q_polinedetailsindexesarr.add(i);
                                 }
@@ -254,7 +264,7 @@ public class Initiator implements FormListener {
                             for (int i = 0; i < rowCount; i++) {
                                 System.out.println("Loop " + i);
                                 if (formObject.getNGValue("qpo_linenumber").equalsIgnoreCase(formObject.getNGValue("q_invoicedetails", i, 0))
-                                        && formObject.getNGValue("qpo_ponumber").equalsIgnoreCase(formObject.getNGValue("q_invoicedetails", i, 13))) {
+                                        && formObject.getNGValue("qpo_ponumber").equalsIgnoreCase(formObject.getNGValue("q_invoicedetails", i, 11))) {//farman
                                     System.out.println("Row exist");
                                     rowexist = true;
                                     break;
@@ -290,8 +300,8 @@ public class Initiator implements FormListener {
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_amount")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_discountpercent")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_discountamount")).
-                                    append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_taxpercent")).
-                                    append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_taxamount")).
+//                                    append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_taxpercent")).
+//                                    append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_taxamount")).
                                     append("</SubItem><SubItem>").append(formObject.getNGValue("qpo_amountwithtax")).
                                     append("</SubItem><SubItem>").append(assessableamount).
                                     append("</SubItem><SubItem>").append(assessableamount).
@@ -360,7 +370,6 @@ public class Initiator implements FormListener {
         System.out.println("----------------------Intiation Workstep Loaded from form populated........---------------------------");
         formObject.clear("filestatus");
         objGeneral = new General();
-//        formObject.setEnabled("state", true);
 
         if (!formObject.getNGValue("previousactivity").equalsIgnoreCase("Approver")
                 && !formObject.getNGValue("previousactivity").equalsIgnoreCase("Accounts")) {
@@ -392,11 +401,29 @@ public class Initiator implements FormListener {
                 formObject.addComboItem("proctype", result.get(i).get(0), result.get(i).get(0));
             }
 
+//            System.out.println("Po number ex:" + formObject.getNGValue("ponumberex"));
+//            if (formObject.getNGValue("ponumber").equals("")) {
+//                formObject.setNGValue("ponumber", formObject.getNGValue("ponumberex"));
+//            }
+//
+//            System.out.println("Invoice Number ex :" + formObject.getNGValue("invoicenumberex"));
+//            if (formObject.getNGValue("invoicenumber").equals("")) {
+//                formObject.setNGValue("invoicenumber", formObject.getNGValue("invoicenumberex"));
+//            }
+//
+//            System.out.println("InvAmountEx :" + formObject.getNGValue("invoiceamountex"));
+//            if (formObject.getNGValue("invoiceamount").equals("")) {
+//                formObject.setNGValue("invoiceamount", formObject.getNGValue("invoiceamountex"));
+//            }
+//
+//            System.out.println("Invoice Date ex :" + formObject.getNGValue("invoicedateex"));
+//            if (formObject.getNGValue("invoicedate").equals("")) {
+//                formObject.setNGValue("invoicedate", objGeneral.formatExtractedInvoiceDt(formObject.getNGValue("invoicedateex")));
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-//        formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
+        objGeneral.setInvoiceExtractedData("ponumber", "invoicenumber", "invoiceamount", "invoicedate");
         formObject.setNGDateRange("invoicedate", null, new Date(objGeneral.getCurrDateForRange()));
 
     }
@@ -429,6 +456,9 @@ public class Initiator implements FormListener {
         formConfig = FormContext.getCurrentInstance().getFormConfig();
         System.out.println("**********-------SUBMIT FORM Started------------*************");
         String levelflag = formObject.getNGValue("levelflag");
+
+        String filestatus = formObject.getNGValue("filestatus");
+        String initiatorException = "";
         objGeneral = new General();
         objAccountsGeneral = new AccountsGeneral();
         objGeneral.checkDuplicateInvoice(
@@ -438,21 +468,41 @@ public class Initiator implements FormListener {
                 processInstanceId
         );
 
-        objGeneral.checkServicePoDoAUser(levelflag, "");
+        if ((!formObject.getNGValue("filestatus").equalsIgnoreCase("Exception")) && (!formObject.getNGValue("filestatus").equalsIgnoreCase("Discard"))) {
+            objGeneral.checkServicePoDoAUser(levelflag, "");
+        }
+        if (filestatus.equalsIgnoreCase("Exception")) {
+            initiatorException = ": " + formObject.getNGValue("Combo3");
+        }
+        objAccountsGeneral.setFinancialDimension("q_financialdimension", processInstanceId);
+        objGeneral.maintainHistory(
+                userName,
+                activityName,
+                filestatus + initiatorException,
+                "",
+                formObject.getNGValue("Text15"),
+                "q_transactionhistory"
+        );
         formObject.setNGValue("FilterDoA_Department", formObject.getNGValue("department"));
         formObject.setNGValue("FilterDoA_Head", formObject.getNGValue("proctype"));
         formObject.setNGValue("FilterDoA_Site", formObject.getNGValue("site"));
         formObject.setNGValue("FilterDoA_StateName", formObject.getNGValue("state"));
         formObject.setNGValue("previousactivity", activityName);
-        objAccountsGeneral.setFinancialDimension("q_financialdimension", processInstanceId);
-        objGeneral.maintainHistory(
-                userName,
-                activityName,
-                formObject.getNGValue("filestatus"),
-                "",
-                formObject.getNGValue("Text15"),
-                "q_transactionhistory"
-        );
+
+        Query = "select purchaseorderno from cmplx_multiplepo where pinstanceid = '" + processInstanceId + "'";
+        result = formObject.getDataFromDataSource(Query);
+        String ponumber = "";
+        for (int i = 0; i < result.size(); i++) {
+            if (i == 0) {
+                ponumber = result.get(i).get(0);
+            } else {
+                ponumber = ponumber + " , " + result.get(i).get(0);
+            }
+        }
+        formObject.setNGValue("PurchaseOrderNo", ponumber);
+        formObject.setNGValue("VendorCode", formObject.getNGValue("suppliercode"));
+        formObject.setNGValue("VendorName", formObject.getNGValue("suppliername"));
+        //formObject.setNGValue("ScanningId", formObject.getNGValue("parentprocessid"));
 
     }
 
